@@ -1,0 +1,65 @@
+﻿# ─── Dependencies ────────────────────────────────────────────────────────────
+node_modules/
+.pnp
+.pnp.js
+
+# ─── Environment & Secrets ───────────────────────────────────────────────────
+.env
+.env.local
+.env.development
+.env.staging
+.env.production
+.env.*.local
+
+# ─── Build Outputs ───────────────────────────────────────────────────────────
+dist/
+build/
+out/
+
+# ─── Frontend (Vite / React) ─────────────────────────────────────────────────
+frontend/dist/
+frontend/.vite/
+frontend/node_modules/
+
+# ─── Backend ─────────────────────────────────────────────────────────────────
+backend/node_modules/
+
+# Generated PDF receipts (created at runtime, should not be committed)
+backend/public/receipts/
+
+# ─── Logs ────────────────────────────────────────────────────────────────────
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+logs/
+
+# ─── Runtime / OS ────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+*.pid
+*.seed
+*.pid.lock
+
+# ─── Editor & IDE ────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# ─── Testing ─────────────────────────────────────────────────────────────────
+coverage/
+.nyc_output/
+
+# ─── Miscellaneous ───────────────────────────────────────────────────────────
+*.tgz
+*.zip
+.cache/
+.temp/
+tmp/
