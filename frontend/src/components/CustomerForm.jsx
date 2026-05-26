@@ -1,4 +1,4 @@
-﻿import React, { useState } from "react";
+import React, { useState } from "react";
 import { useFlow } from "../context/FlowContext";
 import { useAuth, apiClient } from "../context/AuthContext";
 import {
@@ -13,6 +13,7 @@ import {
   CheckCircle2,
   XCircle,
   ClipboardList,
+  ChevronDown,
 } from "lucide-react";
 
 const US_STATES = [
@@ -200,12 +201,9 @@ const CustomerForm = ({ onNext, onBack }) => {
       const isCustomQuote = servicePlan.price === "Custom Quote";
       if (!isCustomQuote) {
         try {
-          // VehicleSalePrice for Maintenance = comes from lift dropdown (stored in servicePlan.vehicleSalePrice)
-          // but if there was no lift selection (PMP has no mandatory lift dropdown), default to 0
-          // RetailPrice for Maintenance is always 3000 (flat)
           const vehicleSalePrice =
             servicePlan.id === "maintenance"
-              ? parseFloat(servicePlan.vehicleSalePrice || 0) // populated if liftType was also chosen
+              ? parseFloat(servicePlan.vehicleSalePrice || 0)
               : parseFloat(servicePlan.vehicleSalePrice || 0);
           const retailPrice =
             servicePlan.id === "maintenance"
@@ -232,7 +230,7 @@ const CustomerForm = ({ onNext, onBack }) => {
 
             // Lift (VIN = serial number, not a vehicle VIN)
             VIN: formData.serial_number,
-            VehicleStatus: servicePlan.vehicleStatus || "NEW", // MUST be NEW or USED
+            VehicleStatus: servicePlan.vehicleStatus || "NEW",
             Year: formData.year ? parseInt(formData.year) : null,
             Make: formData.make,
             Model: formData.model,
@@ -274,7 +272,7 @@ const CustomerForm = ({ onNext, onBack }) => {
             "[GALT] Error submitting to GALT /galt/submit:",
             galtErr,
           );
-          // Non-fatal â€” we still proceed to contract review with legacy mock
+          // Non-fatal — we still proceed to contract review with legacy mock
         }
       }
 
@@ -294,112 +292,100 @@ const CustomerForm = ({ onNext, onBack }) => {
   };
 
   return (
-    <div className="animate-in fade-in duration-500 max-h-[85vh] overflow-y-auto pr-2">
-      {/* Header */}
-      <div className="flex items-center gap-3 bg-brand-500/10 px-6 sm:px-10 py-4 border-b border-brand-500/10">
-        <h3 className="text-lg font-semibold text-brand-500 tracking-tight">
-          Contract Details
-        </h3>
-        <span className="text-xs border border-brand-500/20 text-brand-500 px-3 py-1 bg-white rounded-full font-semibold shadow-sm">
-          {servicePlan?.name} &bull; {servicePlan?.vehicleStatus}
-          {servicePlan?.coverage && <> &bull; {servicePlan.coverage}</>}
-        </span>
-      </div>
-
-      {/* Used Lift Inspection Gate */}
-      {isUsed && (
-        <div className="mx-6 sm:mx-10 mt-6 rounded-2xl border overflow-hidden">
-          <div className="flex items-center gap-3 px-5 py-4 bg-amber-50 border-b border-amber-200">
-            <div className="bg-amber-100 p-2 rounded-lg text-amber-600 flex-shrink-0">
-              <ClipboardList className="w-5 h-5" />
+    <div className="animate-in fade-in duration-300">
+      <form onSubmit={handleSubmit} className="flex flex-col">
+        {/* Scrollable Content Body */}
+        <div className="p-6 sm:p-10 space-y-8 ">
+          {errorMsg && (
+            <div className="p-4 bg-red-50 text-red-700 rounded-xl border border-red-200 text-sm font-semibold flex items-center gap-3">
+              <span className="text-lg">⚠</span> {errorMsg}
             </div>
-            <div>
-              <h4 className="font-bold text-amber-900 text-sm">
-                60-Point Inspection Required â€” Used Lift
-              </h4>
-              <p className="text-amber-700 text-xs mt-0.5">
-                A $400 inspection fee applies. If the lift passes, the $400 is
-                applied toward the contract price. If it fails, remediation work
-                is required before the contract can be issued.
-              </p>
-            </div>
-          </div>
+          )}
 
-          <div className="bg-white px-5 py-5">
-            <p className="text-sm font-semibold text-slate-700 mb-3">
-              Confirm inspection result to unlock contract submission:
-            </p>
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={() => handleInspectionSet("PASS")}
-                className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border-2 text-sm font-bold transition-all duration-150 ${
-                  inspectionResult === "PASS"
-                    ? "bg-emerald-500 border-emerald-500 text-white shadow-md"
-                    : "bg-white border-slate-300 text-slate-600 hover:border-emerald-400 hover:text-emerald-700"
-                }`}
-              >
-                <CheckCircle2 className="w-4 h-4" />
-                Inspection PASSED â€” Proceed
-              </button>
-              <button
-                type="button"
-                onClick={() => handleInspectionSet("FAIL")}
-                className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border-2 text-sm font-bold transition-all duration-150 ${
-                  inspectionResult === "FAIL"
-                    ? "bg-red-500 border-red-500 text-white shadow-md"
-                    : "bg-white border-slate-300 text-slate-600 hover:border-red-300 hover:text-red-600"
-                }`}
-              >
-                <XCircle className="w-4 h-4" />
-                Inspection FAILED
-              </button>
-            </div>
-
-            {inspectionResult === "PASS" && (
-              <div className="mt-3 flex items-center gap-2 text-emerald-700 text-xs font-semibold bg-emerald-50 border border-emerald-200 px-4 py-2 rounded-lg">
-                <CheckCircle2 className="w-4 h-4" />
-                Inspection confirmed passed. The $400 fee will be applied toward
-                the contract. Submission unlocked.
+          {/* Used Lift Inspection Gate */}
+          {isUsed && (
+            <div className="rounded-2xl border-2 border-amber-200 overflow-hidden shadow-xs">
+              <div className="flex items-center gap-3 px-5 py-4 bg-amber-50 border-b border-amber-200">
+                <div className="bg-amber-100 p-2 rounded-lg text-amber-600 flex-shrink-0">
+                  <ClipboardList className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-amber-900 text-sm">
+                    60-Point Inspection Required — Used Lift
+                  </h4>
+                  <p className="text-amber-700 text-xs mt-0.5 font-semibold">
+                    A $400 inspection fee applies. If the lift passes, the $400 is
+                    applied toward the contract price. If it fails, remediation work
+                    is required before the contract can be issued.
+                  </p>
+                </div>
               </div>
-            )}
-            {inspectionResult === "FAIL" && (
-              <div className="mt-3 p-4 bg-red-50 border border-red-200 rounded-lg text-sm">
-                <p className="font-bold text-red-800 mb-1">
-                  Lift failed inspection
+
+              <div className="bg-white px-5 py-5 space-y-3">
+                <p className="text-xs sm:text-sm font-bold text-slate-700">
+                  Confirm inspection result to unlock contract submission:
                 </p>
-                <p className="text-red-700 text-xs">
-                  The customer may opt for service/remediation work (additional
-                  charge). Once BLP signs off on completion, return to this
-                  screen, mark as PASSED, and proceed with the contract.
-                </p>
+                <div className="flex gap-4">
+                  <button
+                    type="button"
+                    onClick={() => handleInspectionSet("PASS")}
+                    className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border-2 text-sm font-bold transition-all duration-150 ${
+                      inspectionResult === "PASS"
+                        ? "bg-emerald-500 border-emerald-500 text-white shadow-sm scale-[1.01]"
+                        : "bg-white border-slate-200 text-slate-600 hover:border-emerald-400 hover:text-emerald-700"
+                    }`}
+                  >
+                    <CheckCircle2 className="w-4 h-4" />
+                    Inspection PASSED
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleInspectionSet("FAIL")}
+                    className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border-2 text-sm font-bold transition-all duration-150 ${
+                      inspectionResult === "FAIL"
+                        ? "bg-red-500 border-red-500 text-white shadow-sm scale-[1.01]"
+                        : "bg-white border-slate-200 text-slate-600 hover:border-red-300 hover:text-red-600"
+                    }`}
+                  >
+                    <XCircle className="w-4 h-4" />
+                    Inspection FAILED
+                  </button>
+                </div>
+
+                {inspectionResult === "PASS" && (
+                  <div className="mt-3 flex items-center gap-2 text-[#0A5C28] text-xs font-semibold bg-[#E3F9E9] border border-[#A3E5B7] px-4 py-2.5 rounded-lg shadow-xs">
+                    <CheckCircle2 className="w-4 h-4" />
+                    Inspection confirmed passed. The $400 fee will be applied toward the contract. Submission unlocked.
+                  </div>
+                )}
+                {inspectionResult === "FAIL" && (
+                  <div className="mt-3 p-4 bg-red-50 border border-red-200 rounded-lg text-xs font-semibold leading-relaxed">
+                    <p className="font-bold text-red-800 mb-1">
+                      Lift failed inspection
+                    </p>
+                    <p className="text-red-700">
+                      The customer may opt for service/remediation work (additional
+                      charge). Once BLP signs off on completion, return to this
+                      screen, mark as PASSED, and proceed with the contract.
+                    </p>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-        </div>
-      )}
+            </div>
+          )}
 
-      <div className="p-6 sm:p-10">
-        {errorMsg && (
-          <div className="mb-6 p-4 bg-red-50 text-red-700 rounded-xl border border-red-200 text-sm font-semibold flex items-center gap-3">
-            <span className="text-lg">âš </span> {errorMsg}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-8">
           {/* Technician Info */}
-          <div className="bg-slate-50/50 p-6 rounded-2xl border border-slate-200/60">
-            <h4 className="text-sm font-bold text-slate-700 mb-4 flex items-center gap-2 uppercase tracking-wide">
+          <div className="bg-slate-50/50 p-6 rounded-2xl border border-slate-200/60 space-y-4 shadow-sm">
+            <h4 className="text-xs font-bold text-slate-700 flex items-center gap-2 uppercase tracking-wider border-b border-slate-200/60 pb-2">
               <span className="bg-emerald-100 text-emerald-600 p-1.5 rounded-lg">
                 <BadgeCheck className="w-4 h-4" />
               </span>
               Service Technician
             </h4>
-            <div className="grid grid-cols-1 gap-6 items-center">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
               <div className="relative">
-                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
-                  Technician On-Site Name{" "}
-                  <span className="text-red-500">*</span>
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
+                  Technician On-Site Name <span className="text-red-500">*</span>
                 </label>
                 <div className="relative rounded-xl">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
@@ -415,18 +401,18 @@ const CustomerForm = ({ onNext, onBack }) => {
                   />
                 </div>
               </div>
-              <p className="text-xs text-slate-500 font-medium">
+              <p className="text-xs text-slate-500 font-semibold leading-relaxed">
                 Please enter your full name since this is a shared shop portal
-                login.
+                login. This will be stamped on the official contract submission.
               </p>
             </div>
           </div>
 
-          {/* Two-Column Form */}
-          <div className="grid grid-cols-1 gap-8">
+          {/* Customer & Equipment specs */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Column 1: Customer */}
-            <div className="space-y-6">
-              <h4 className="text-md font-bold text-slate-800 border-b pb-2 flex items-center gap-2">
+            <div className="bg-slate-50/50 p-6 rounded-2xl border border-slate-200/60 space-y-5 shadow-sm">
+              <h4 className="text-xs font-bold text-slate-700 flex items-center gap-2 uppercase tracking-wider border-b border-slate-200/60 pb-2">
                 <span className="bg-sky-100 text-sky-600 p-1.5 rounded-lg">
                   <User className="w-4 h-4" />
                 </span>
@@ -435,7 +421,7 @@ const CustomerForm = ({ onNext, onBack }) => {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
                     First Name <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -449,7 +435,7 @@ const CustomerForm = ({ onNext, onBack }) => {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
                     Last Name <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -466,7 +452,7 @@ const CustomerForm = ({ onNext, onBack }) => {
 
               <div className="grid grid-cols-3 gap-4">
                 <div className="col-span-2">
-                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
                     Middle Initial
                   </label>
                   <input
@@ -480,7 +466,7 @@ const CustomerForm = ({ onNext, onBack }) => {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
                     Suffix
                   </label>
                   <input
@@ -495,7 +481,7 @@ const CustomerForm = ({ onNext, onBack }) => {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
                   Email Address
                 </label>
                 <div className="relative">
@@ -515,7 +501,7 @@ const CustomerForm = ({ onNext, onBack }) => {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
                     Home Phone <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
@@ -534,7 +520,7 @@ const CustomerForm = ({ onNext, onBack }) => {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
                     Business Phone
                   </label>
                   <div className="relative">
@@ -554,7 +540,7 @@ const CustomerForm = ({ onNext, onBack }) => {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
                   Street Address <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
@@ -575,7 +561,7 @@ const CustomerForm = ({ onNext, onBack }) => {
 
               <div className="grid grid-cols-3 gap-4">
                 <div className="col-span-2">
-                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
                     City <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -589,28 +575,33 @@ const CustomerForm = ({ onNext, onBack }) => {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
                     State <span className="text-red-500">*</span>
                   </label>
-                  <select
-                    name="state"
-                    required
-                    className="input-field uppercase"
-                    value={formData.state}
-                    onChange={handleChange}
-                  >
-                    <option value="">--</option>
-                    {US_STATES.map((s) => (
-                      <option key={s} value={s}>
-                        {s}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="relative">
+                    <select
+                      name="state"
+                      required
+                      className="input-field pl-4 pr-10 appearance-none bg-white cursor-pointer"
+                      value={formData.state}
+                      onChange={handleChange}
+                    >
+                      <option value="">--</option>
+                      {US_STATES.map((s) => (
+                        <option key={s} value={s}>
+                          {s}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-slate-400">
+                      <ChevronDown className="w-4 h-4" />
+                    </div>
+                  </div>
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
                   Zip Code <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -626,18 +617,17 @@ const CustomerForm = ({ onNext, onBack }) => {
             </div>
 
             {/* Column 2: Lift Specs */}
-            <div className="space-y-6">
-              <h4 className="text-md font-bold text-slate-800 border-b pb-2 flex items-center gap-2">
+            <div className="bg-slate-50/50 p-6 rounded-2xl border border-slate-200/60 space-y-5 shadow-sm">
+              <h4 className="text-xs font-bold text-slate-700 flex items-center gap-2 uppercase tracking-wider border-b border-slate-200/60 pb-2">
                 <span className="bg-emerald-100 text-emerald-600 p-1.5 rounded-lg">
                   <Anchor className="w-4 h-4" />
                 </span>
-                Lift &amp; Equipment Specifications
+                Lift Specifications
               </h4>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
-                  Serial Number (VIN / SN){" "}
-                  <span className="text-red-500">*</span>
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
+                  Serial Number (VIN / SN) <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
@@ -657,7 +647,7 @@ const CustomerForm = ({ onNext, onBack }) => {
 
               <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
                     Year <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -671,7 +661,7 @@ const CustomerForm = ({ onNext, onBack }) => {
                   />
                 </div>
                 <div className="col-span-2">
-                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
                     Make <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -687,7 +677,7 @@ const CustomerForm = ({ onNext, onBack }) => {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
                   Model <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -703,27 +693,27 @@ const CustomerForm = ({ onNext, onBack }) => {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
                     Date of Sale <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="date"
                     name="date_of_sale"
                     required
-                    className="input-field"
+                    className="input-field px-4"
                     value={formData.date_of_sale}
                     onChange={handleChange}
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
                     In-Service Date <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="date"
                     name="in_service_date"
                     required
-                    className="input-field"
+                    className="input-field px-4"
                     value={formData.in_service_date}
                     onChange={handleChange}
                   />
@@ -731,9 +721,8 @@ const CustomerForm = ({ onNext, onBack }) => {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
-                  Manufacturer Warranty Length (Months){" "}
-                  <span className="text-red-500">*</span>
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
+                  Manufacturer Warranty Length (Months) <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="number"
@@ -748,7 +737,7 @@ const CustomerForm = ({ onNext, onBack }) => {
               </div>
 
               {/* Fixed / Auto-Populated Parameters */}
-              <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl text-[11px] text-slate-400 font-semibold space-y-1">
+              <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl text-[10px] text-slate-400 font-semibold space-y-1 shadow-inner">
                 <div className="text-slate-500 uppercase tracking-wider font-bold mb-1 border-b pb-1">
                   Auto-Populated API Parameters
                 </div>
@@ -759,13 +748,10 @@ const CustomerForm = ({ onNext, onBack }) => {
                   </strong>
                 </div>
                 <div>
-                  Odometer Reading:{" "}
-                  <strong className="text-slate-600">0</strong> &bull; Type:{" "}
-                  <strong className="text-slate-600">no</strong>
+                  Odometer Reading: <strong className="text-slate-600">0</strong> &bull; Type: <strong className="text-slate-600">no</strong>
                 </div>
                 <div>
-                  Term Miles Cap:{" "}
-                  <strong className="text-slate-600">999,999</strong>
+                  Term Miles Cap: <strong className="text-slate-600">999,999</strong>
                 </div>
                 <div>
                   Deductible: <strong className="text-slate-600">$0</strong>
@@ -773,7 +759,7 @@ const CustomerForm = ({ onNext, onBack }) => {
                 <div>
                   Coverage:{" "}
                   <strong className="text-slate-600">
-                    {servicePlan?.coverage || "â€”"}
+                    {servicePlan?.coverage || "—"}
                   </strong>
                   {servicePlan?.contractType && (
                     <>
@@ -786,64 +772,70 @@ const CustomerForm = ({ onNext, onBack }) => {
                   )}
                 </div>
                 <div>
-                  Surcharges / ReqFields:{" "}
-                  <strong className="text-slate-600">[] (empty)</strong>
+                  Surcharges / ReqFields: <strong className="text-slate-600">[] (empty)</strong>
                 </div>
-                <div className="pt-1 border-t mt-1 text-slate-400 italic">
-                  Lienholder, AmountFinanced, APR, EngineSize â€” omitted (not
-                  applicable to lifts)
+                <div className="pt-1 border-t mt-1 text-slate-400 italic font-medium">
+                  Lienholder, AmountFinanced, APR, EngineSize — omitted (not applicable to lifts)
                 </div>
               </div>
             </div>
           </div>
+        </div>
 
-          {/* Footer */}
-          <div className="p-8 border-t border-slate-100 flex flex-col items-center text-center bg-slate-50/30 -mx-6 sm:-mx-10 -mb-6 sm:-mb-10 mt-10">
-            {submitBlocked && (
-              <div className="mb-4 flex items-center gap-2 text-amber-700 text-sm font-semibold bg-amber-50 border border-amber-200 px-5 py-3 rounded-xl">
-                <AlertTriangle className="w-4 h-4" />
-                Confirm the 60-point inspection result above to unlock
-                submission.
-              </div>
-            )}
-            <p className="text-sm font-medium text-slate-500 mb-6">
-              You can review the digitally generated service agreement on the
-              next step.
-            </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full sm:w-auto mb-5">
-              <button
-                type="button"
-                onClick={() => {
-                  setCustomer({ ...customer, ...formData });
-                  setTechnicianName(techName);
-                  onBack();
-                }}
-                className="border border-brand-500 text-brand-600 hover:bg-brand-50 bg-white rounded-full px-8 py-3.5 text-sm transition-colors w-full sm:w-auto min-w-[200px] font-semibold"
-              >
-                Go Back
-              </button>
-              <button
-                type="submit"
-                disabled={loading || submitBlocked}
-                className={`rounded-full border border-accent-500 px-8 py-3.5 text-sm transition-colors w-full sm:w-auto min-w-[200px] font-semibold tracking-wide ${
-                  !loading && !submitBlocked
-                    ? "bg-accent-500 text-white hover:bg-accent-600 shadow-md"
-                    : "bg-slate-200 border-transparent text-slate-400 cursor-not-allowed"
-                }`}
-              >
-                {loading
-                  ? "Processingâ€¦"
-                  : submitBlocked
-                    ? "Inspection Required"
-                    : "Continue to Review"}
-              </button>
+        {/* Footer Navigation Bar */}
+        <div className="p-6 bg-slate-50 border-t border-slate-200/80 flex flex-col sm:flex-row items-center justify-between gap-4">
+          {submitBlocked ? (
+            <div className="flex items-center gap-2 text-amber-700 text-xs font-semibold bg-amber-50 border border-amber-200 px-4 py-2 rounded-xl shadow-xs">
+              <AlertTriangle className="w-4 h-4 shrink-0" />
+              Confirm 60-point inspection above to unlock submission.
             </div>
+          ) : (
+            <div className="text-xs text-slate-400 font-semibold leading-relaxed">
+              Confirm all details. Continuing will generate the official digital GALT contract.
+            </div>
+          )}
+
+          <div className="flex items-center gap-4 shrink-0 self-stretch sm:self-auto justify-between sm:justify-end">
+            <button
+              type="button"
+              onClick={() => {
+                setCustomer({ ...customer, ...formData });
+                setTechnicianName(techName);
+                onBack();
+              }}
+              className="border border-slate-200 text-slate-600 hover:bg-slate-100/60 bg-white rounded-xl px-6 py-3 text-xs sm:text-sm transition-all font-bold shadow-sm"
+            >
+              Go back
+            </button>
+
+            <button
+              type="submit"
+              disabled={loading || submitBlocked}
+              className={`rounded-xl px-6 py-3 text-xs sm:text-sm font-bold transition-all shadow-sm hover:shadow-md ${
+                !loading && !submitBlocked
+                  ? "bg-[#2f4269] text-white hover:bg-brand-600 cursor-pointer"
+                  : "bg-slate-200 text-slate-400 cursor-not-allowed shadow-none"
+              }`}
+            >
+              {loading ? (
+                <span className="flex items-center gap-2">
+                  <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                  </svg>
+                  Generating GALT contract...
+                </span>
+              ) : submitBlocked ? (
+                "Inspection Required"
+              ) : (
+                "Continue to contract review"
+              )}
+            </button>
           </div>
-        </form>
-      </div>
+        </div>
+      </form>
     </div>
   );
 };
 
 export default CustomerForm;
-

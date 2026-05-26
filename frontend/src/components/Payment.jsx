@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useFlow } from "../context/FlowContext";
 import { apiClient } from "../context/AuthContext";
 import { loadStripe } from "@stripe/stripe-js";
@@ -8,44 +8,39 @@ import {
   useStripe,
   useElements,
 } from "@stripe/react-stripe-js";
-import { useNavigate } from "react-router-dom";
-import { Lock } from "lucide-react";
 
-// NOTE: Replace with actual publishable key in prod
-const stripePromise = loadStripe(
-  import.meta.env.VITE_STRIPE_PUB_KEY || "pk_test_dummy",
-);
+// Make sure to call loadStripe outside of a component’s render to avoid
+// recreating the Stripe object on every render.
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUB_KEY);
 
 const CheckoutForm = ({ contract_id }) => {
-  const navigate = useNavigate();
   const stripe = useStripe();
   const elements = useElements();
-  const [errorMessage, setErrorMessage] = useState(null);
+  const [errorMessage, setErrorMessage] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
 
-    if (!stripe || !elements) return;
+    if (!stripe || !elements) {
+      return;
+    }
 
     setLoading(true);
-    setErrorMessage(null);
+    setErrorMessage("");
 
-    const { error, paymentIntent } = await stripe.confirmPayment({
+    const { error } = await stripe.confirmPayment({
       elements,
       confirmParams: {
-        return_url: window.location.origin + `/payment-status/${contract_id}`,
+        return_url: `${window.location.origin}/checkout-success?contract_id=${contract_id}`,
       },
-      redirect: "if_required",
     });
 
     if (error) {
       setErrorMessage(error.message);
       setLoading(false);
-    } else if (paymentIntent && paymentIntent.status === "succeeded") {
-      setLoading(false);
-      navigate(`/payment-status/${contract_id}`);
     } else {
+      console.log("[Payment] Confirm Payment succeeded / redirecting...");
       setErrorMessage(
         "Payment requires further action or is still processing.",
       );
@@ -65,10 +60,10 @@ const CheckoutForm = ({ contract_id }) => {
       )}
       <button
         disabled={!stripe || loading}
-        className={`mt-6 w-full rounded-full border border-brand-500 px-8 py-3 text-sm transition-colors ${
+        className={`w-full rounded-xl border px-8 py-3.5 text-sm transition-all shadow-sm hover:shadow-md font-bold ${
           !stripe || loading
-            ? "bg-slate-300 border-transparent text-slate-100 cursor-not-allowed"
-            : "bg-brand-500 text-white hover:bg-brand-600 shadow-sm"
+            ? "bg-slate-200 border-transparent text-slate-400 cursor-not-allowed shadow-none"
+            : "bg-[#2f4269] border-[#2f4269] text-white hover:bg-brand-600 cursor-pointer"
         }`}
       >
         {loading ? "Processing Payment..." : "Direct Secure Payment"}
@@ -107,34 +102,30 @@ const Payment = ({ onNext, onBack }) => {
   }, [contractId]);
 
   return (
-    <div className="animate-in fade-in zoom-in duration-300">
-      <div className="flex items-center gap-3 bg-brand-500/10 px-6 sm:px-10 py-4 border-b border-brand-500/10">
-        <h3 className="text-lg font-semibold text-brand-500 tracking-tight">
-          Secure Checkout
-        </h3>
-        <span className="text-xs border border-brand-500/20 text-brand-500 px-3 py-1 bg-white rounded-full font-medium shadow-sm">
-          Encrypted
-        </span>
-      </div>
-
-      <div className="p-6 sm:p-10 max-w-2xl mx-auto">
-        <div className="bg-gradient-to-r from-brand-50 to-brand-100 text-brand-900 rounded-2xl p-6 md:p-8 mb-8 text-center shadow-sm border border-brand-200 relative overflow-hidden">
+    <div className="animate-in fade-in duration-300 flex flex-col">
+      {/* Scrollable Content Body */}
+      <div className="p-6 sm:p-10 max-w-2xl mx-auto space-y-8 w-full">
+        <div className="bg-gradient-to-br from-[#0b1a30]/5 to-[#0b1a30]/10 text-[#0b1a30] rounded-2xl p-6 sm:p-8 text-center shadow-sm border border-slate-200/80 relative overflow-hidden">
           {/* subtle pattern overlay */}
-          <div className="absolute inset-0 opacity-20 bg-[radial-gradient(#0ea5e9_1px,transparent_1px)] [background-size:16px_16px]"></div>
+          <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#0ea5e9_1px,transparent_1px)] [background-size:16px_16px]"></div>
 
           <div className="relative z-10">
-            <span className="text-sm font-semibold uppercase tracking-widest text-brand-500 block mb-2">
+            <span className="text-xs font-bold uppercase tracking-widest text-[#2f4269] block mb-1">
               Total Amount Due
             </span>
-            <span className="text-5xl font-semibold tracking-tighter text-brand-500">
-              ${(servicePlan?.price - (servicePlan?.vehicleStatus === "USED" ? 400 : 0))?.toLocaleString()}
+            <span className="text-5xl font-extrabold tracking-tight text-[#0b1a30]">
+              $
+              {(
+                servicePlan?.price -
+                (servicePlan?.vehicleStatus === "USED" ? 400 : 0)
+              )?.toLocaleString()}
             </span>
             <div className="mt-4 flex flex-col items-center gap-2">
-              <span className="text-sm text-brand-500 font-semibold bg-white/60 backdrop-blur-sm px-4 py-1.5 rounded-full inline-block shadow-sm">
+              <span className="text-xs text-[#2f4269] font-bold bg-white border border-[#D0E2FF] px-4 py-1.5 rounded-xl inline-block shadow-sm">
                 {servicePlan?.name} Base Plan
               </span>
               {servicePlan?.vehicleStatus === "USED" && (
-                <span className="text-xs text-emerald-700 font-bold bg-emerald-100/80 backdrop-blur-sm px-3.5 py-1 rounded-full inline-block shadow-sm border border-emerald-200/50">
+                <span className="text-xs text-[#0A5C28] font-bold bg-[#E3F9E9] border border-[#A3E5B7] px-4 py-1.5 rounded-xl inline-block shadow-sm">
                   Includes -$400.00 Used Lift Inspection Credit
                 </span>
               )}
@@ -143,12 +134,12 @@ const Payment = ({ onNext, onBack }) => {
         </div>
 
         {errorMsg && (
-          <div className="mb-8 p-4 bg-red-50 text-red-700 rounded-xl border border-red-200 text-sm font-semibold flex items-center justify-center gap-2">
+          <div className="p-4 bg-red-50 text-red-700 rounded-xl border border-red-200 text-sm font-semibold flex items-center justify-center gap-2">
             <span className="text-lg">⚠</span> {errorMsg}
           </div>
         )}
 
-        <div className="bg-slate-50 p-6 md:p-8 rounded-2xl border border-slate-100 shadow-inner">
+        <div className="bg-white p-6 sm:p-8 rounded-2xl border border-slate-200 shadow-sm">
           {clientSecret ? (
             <Elements stripe={stripePromise} options={{ clientSecret }}>
               <CheckoutForm contract_id={contractId} />
@@ -156,7 +147,7 @@ const Payment = ({ onNext, onBack }) => {
           ) : !errorMsg ? (
             <div className="flex flex-col items-center justify-center p-12 gap-5">
               <svg
-                className="animate-spin h-10 w-10 text-brand-500"
+                className="animate-spin h-10 w-10 text-[#2f4269]"
                 fill="none"
                 viewBox="0 0 24 24"
               >
@@ -175,35 +166,31 @@ const Payment = ({ onNext, onBack }) => {
                 />
               </svg>
               <span className="text-slate-500 font-semibold text-lg">
-                Initializing securely...
+                Initializing payment gateway...
               </span>
             </div>
           ) : null}
         </div>
+      </div>
 
-        <div className="p-8 border-t border-slate-100 flex flex-col items-center text-center bg-slate-50/30 -mx-6 sm:-mx-10 -mb-6 sm:-mb-10 mt-10">
-          <p className="text-sm font-medium text-slate-500 mb-6">
-            You can verify the payment payload or add another format to your
-            order.
-          </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full sm:w-auto mb-5">
-            <button
-              type="button"
-              onClick={onBack}
-              disabled={!clientSecret && !errorMsg}
-              className="border border-brand-500 text-brand-600 hover:bg-brand-50 bg-white rounded-full px-8 py-3 text-sm transition-colors w-full sm:w-auto min-w-[200px] disabled:opacity-50"
-            >
-              Go Back
-            </button>
-            <button
-              type="button"
-              disabled={true}
-              className="rounded-full border border-transparent px-8 py-3 text-sm transition-colors w-full sm:w-auto min-w-[200px] bg-slate-300 text-slate-100 cursor-not-allowed"
-            >
-              Await Secure Payment
-            </button>
-          </div>
-        </div>
+      {/* Footer Navigation Bar */}
+      <div className="p-6 bg-slate-50 border-t border-slate-200/80 flex items-center justify-between">
+        <button
+          type="button"
+          onClick={onBack}
+          disabled={!clientSecret && !errorMsg}
+          className="border border-slate-200 text-slate-600 hover:bg-slate-100/60 bg-white rounded-xl px-6 py-3 text-xs sm:text-sm transition-all font-bold shadow-sm disabled:opacity-50"
+        >
+          Go Back
+        </button>
+
+        <button
+          type="button"
+          disabled={true}
+          className="rounded-xl px-6 py-3 text-xs sm:text-sm font-bold transition-all shadow-none bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200/50"
+        >
+          Await Payment Details Above
+        </button>
       </div>
     </div>
   );

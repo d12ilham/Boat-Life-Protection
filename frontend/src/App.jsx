@@ -19,7 +19,7 @@ const Header = () => {
             <img
               src="/logo.png"
               alt="Boat Lift Protection"
-              className="h-14 object-contain"
+              className="h-10 object-contain"
             />
           </div>
         </div>
@@ -27,17 +27,17 @@ const Header = () => {
         {isAuthenticated && (
           <div className="flex items-center justify-between md:justify-end gap-4 bg-white/50 md:bg-transparent p-3 md:p-0 rounded-2xl md:rounded-none shadow-sm md:shadow-none border border-white md:border-transparent">
             <div className="text-left md:text-right">
-              <p className="text-sm font-bold text-slate-800">
+              <p className="text-sm font-semibold text-slate-800">
                 {user?.username || "Technician"}
               </p>
-              <p className="text-xs text-brand-600 font-semibold uppercase tracking-wider">
+              <p className="text-[10px] text-brand-600 uppercase tracking-wider">
                 {user?.role || "User"}
               </p>
             </div>
             <button
               onClick={logout}
               title="Sign out"
-              className="flex items-center gap-2 px-3 py-2.5 text-sm font-semibold text-slate-600 hover:text-red-700 bg-white hover:bg-red-50 border border-slate-200 hover:border-red-200 rounded-xl transition-all duration-200 shadow-sm"
+              className="flex items-center gap-2 px-3 py-2.5 text-sm font-semibold text-slate-600 hover:text-red-700 bg-white hover:bg-red-50 border border-slate-200 hover:border-red-200 rounded-xl transition-all duration-200 shadow-sm shadow-slate-100"
             >
               <LogOut className="w-4 h-4" />
               <span className="md:hidden">Sign Out</span>
@@ -56,8 +56,8 @@ function App() {
         <FlowProvider>
           {/* Background gradient & pattern */}
           <div className="min-h-screen bg-gradient-to-br from-slate-100 via-blue-50/50 to-slate-200 relative overflow-hidden">
-            <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-brand-200/40 rounded-full mix-blend-multiply filter blur-3xl animate-pulse" />
-            <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-sky-200/40 rounded-full mix-blend-multiply filter blur-3xl animate-pulse [animation-delay:2s]" />
+            <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-brand-200/40 rounded-full mix-blend-multiply filter blur-3xl" />
+            <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-sky-200/40 rounded-full mix-blend-multiply filter blur-3xl" />
 
             <div className="relative z-10 flex flex-col min-h-screen p-5 font-sans">
               <Header />

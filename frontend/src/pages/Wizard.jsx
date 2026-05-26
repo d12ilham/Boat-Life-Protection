@@ -1,5 +1,6 @@
-﻿import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
+import { useFlow } from "../context/FlowContext";
 import Login from "../components/Login";
 import ServiceSelection from "../components/ServiceSelection";
 import CustomerForm from "../components/CustomerForm";
@@ -11,6 +12,7 @@ const STEP_START = 2; // First real step after login
 
 const Wizard = () => {
   const { isAuthenticated, isLoading } = useAuth();
+  const { technicianName } = useFlow();
   const [step, setStep] = useState(isAuthenticated ? STEP_START : STEP_LOGIN);
 
   // When auth status changes (e.g. token refreshed on load), jump to step 2
@@ -76,83 +78,67 @@ const Wizard = () => {
   }
 
   return (
-    <div className="w-full flex-1 flex flex-col justify-start">
-      {/* Step progress indicator (attached near the header) */}
-      {isAuthenticated && step > 1 && step <= 5 && (
-        <div className="w-full max-w-5xl mx-auto bg-white bg-opacity-90 backdrop-blur-md px-6 py-4 flex flex-col md:flex-row items-center justify-center overflow-x-auto gap-4 sm:gap-8 rounded-xl !mb-0 z-10 transition-all">
-          <div className="flex items-center">
-            {[
-              {
-                num: 1,
-                title: "Service Plan",
-                subtitle: "Select protection tier",
-              },
-              {
-                num: 2,
-                title: "Customer Details",
-                subtitle: "Property & Contact info",
-              },
-              {
-                num: 3,
-                title: "Contract Review",
-                subtitle: "Digital signature",
-              },
-              { num: 4, title: "Secure Payment", subtitle: "Finalize order" },
-            ].map((s, index, arr) => {
-              const currentStepNum = step - 1;
-              const isComplete = currentStepNum > s.num;
-              const isCurrent = currentStepNum === s.num;
+    <div className="w-full flex-1 flex flex-col justify-start py-4">
+      {/* Subtitles above the card */}
+      <div className="text-center mb-8 flex flex-col items-center">
+        <span className="inline-flex items-center gap-1.5 px-3.5 py-1 bg-brand-50 border border-brand-200 text-brand-700 font-bold text-[10px] tracking-wider uppercase rounded-full mb-3 shadow-xs select-none">
+          ⚓ Technician Field Portal
+        </span>
+        <h1 className="text-2xl sm:text-4xl font-bold text-[#2F4269] tracking-tight force-bold">
+          Service Contract — Lift Selection Flow
+        </h1>
+        <p className="text-xs sm:text-sm text-slate-500 mt-2">
+          Step {step - 1} of the technician portal: plan selection and checkout
+        </p>
+      </div>
 
-              return (
-                <React.Fragment key={s.num}>
-                  <div className="flex items-center gap-4">
-                    <div
-                      className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold transition-colors ${
-                        isComplete || isCurrent
-                          ? "bg-brand-500 text-white"
-                          : "bg-slate-200 text-slate-500"
-                      }`}
-                    >
-                      {isComplete ? (
-                        <svg
-                          className="w-5 h-5 text-white"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2.5}
-                            d="M5 13l4 4L19 7"
-                          />
-                        </svg>
-                      ) : (
-                        s.num
-                      )}
-                    </div>
-                    <div className="flex flex-col">
-                      <span
-                        className={`text-sm font-semibold tracking-tight ${isComplete || isCurrent ? "text-[#111111]" : "text-slate-500"}`}
-                      >
-                        {s.title}
-                      </span>
-                    </div>
-                  </div>
-                  {index < arr.length - 1 && (
-                    <div className="mx-4 sm:mx-6 w-8 sm:w-12 border-t-2 border-dashed border-slate-300"></div>
-                  )}
-                </React.Fragment>
-              );
-            })}
+      {/* Unified Frame Portal Card */}
+      <div className="w-full max-w-5xl mx-auto bg-white rounded-3xl border border-slate-200 shadow-xl overflow-hidden relative z-0 flex flex-col animate-in zoom-in-98 duration-400">
+        {/* Navy Header Block */}
+        <div className="bg-[#2F4269] px-6 sm:px-10 py-6 flex items-center justify-center">
+          <div className="flex items-center gap-4">
+            <h2 className="text-white text-base sm:text-lg tracking-tight leading-tight font-semibold">
+              Boat Lift Protection — Field Portal
+            </h2>
           </div>
         </div>
-      )}
 
-      <div className="flex-1 flex flex-col justify-center items-center py-8">
-        <div className="card w-full max-w-5xl relative z-0">
-          {getStepContent()}
+        {/* Steps Navigation Bar */}
+        <div className="bg-slate-50/50 border-b border-slate-200/80 px-6 py-4 flex overflow-x-auto scrollbar-none gap-3 sm:gap-4 justify-center items-center select-none">
+          {[
+            { num: 1, title: "Service Plan", emoji: "🔧" },
+            { num: 2, title: "Customer Details", emoji: "👤" },
+            { num: 3, title: "Contract Review", emoji: "📄" },
+            { num: 4, title: "Secure Payment", emoji: "💳" },
+          ].map((s) => {
+            const currentStepNum = step - 1; // step 2 = 1, step 3 = 2, step 4 = 3, step 5 = 4
+            const isActive = currentStepNum === s.num;
+            const isCompleted = currentStepNum > s.num;
+
+            return (
+              <div
+                key={s.num}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-full border transition-all duration-200 relative whitespace-nowrap text-xs sm:text-sm font-semibold tracking-tight shadow-xs ${
+                  isActive
+                    ? "bg-brand-50 border-brand-500 text-brand-900 scale-102 ring-4 ring-brand-500/5"
+                    : isCompleted
+                      ? "bg-emerald-50 border-emerald-200 text-emerald-800"
+                      : "bg-white border-slate-200 text-slate-400"
+                }`}
+              >
+                <span className="text-sm">
+                  {isCompleted ? "✓" : s.emoji}
+                </span>
+                <span className={isActive ? "font-bold text-brand-900" : ""}>
+                  {s.title}
+                </span>
+              </div>
+            );
+          })}
         </div>
+
+        {/* Page Content Area */}
+        <div className="flex-1">{getStepContent()}</div>
       </div>
     </div>
   );

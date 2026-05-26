@@ -1,6 +1,6 @@
-﻿import fs from 'fs';
-import path from 'path';
-import db from '../config/db.js';
+﻿import fs from "fs";
+import path from "path";
+import db from "../config/db.js";
 
 /**
  * Controller for Galt F&I Online Interface API endpoints
@@ -15,24 +15,30 @@ const getGaltCredentials = () => ({
 
 const galtFetch = async (endpoint, payload) => {
   const baseUrl = process.env.GALT_API_BASE_URL;
-  if (!baseUrl) throw new Error('Galt API Base URL is not configured.');
+  if (!baseUrl) throw new Error("Galt API Base URL is not configured.");
 
   const fullPayload = { ...payload, ...getGaltCredentials() };
-  const authHeader = 'Basic ' + Buffer.from(
-    process.env.GALT_USERNAME + ':' + process.env.GALT_PASSWORD
-  ).toString('base64');
+  const authHeader =
+    "Basic " +
+    Buffer.from(
+      process.env.GALT_USERNAME + ":" + process.env.GALT_PASSWORD,
+    ).toString("base64");
 
-  console.log('[GALT] POST', endpoint, JSON.stringify(fullPayload, null, 2));
+  console.log("[GALT] POST", endpoint, JSON.stringify(fullPayload));
 
   const response = await fetch(baseUrl + endpoint, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: authHeader },
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: authHeader },
     body: JSON.stringify(fullPayload),
   });
 
   const textData = await response.text();
   let data;
-  try { data = JSON.parse(textData); } catch (e) { data = { rawResponse: textData }; }
+  try {
+    data = JSON.parse(textData);
+  } catch (e) {
+    data = { rawResponse: textData };
+  }
   return { data, ok: response.ok, status: response.status };
 };
 
@@ -41,11 +47,14 @@ const galtFetch = async (endpoint, payload) => {
  */
 export const getRate = async (req, res) => {
   try {
-    const { data, ok, status } = await galtFetch('/rateymm.aspx', req.body);
+    const { data, ok, status } = await galtFetch("/rateymm.aspx", req.body);
     return res.status(ok ? 200 : status).json(data);
   } catch (error) {
-    console.error('Error calling Galt rate API:', error);
-    return res.status(500).json({ message: 'Failed to retrieve rate from Galt API', error: error.message });
+    console.error("Error calling Galt rate API:", error);
+    return res.status(500).json({
+      message: "Failed to retrieve rate from Galt API",
+      error: error.message,
+    });
   }
 };
 
@@ -54,11 +63,14 @@ export const getRate = async (req, res) => {
  */
 export const submitApp = async (req, res) => {
   try {
-    const { data, ok, status } = await galtFetch('/app.aspx', req.body);
+    const { data, ok, status } = await galtFetch("/app.aspx", req.body);
     return res.status(ok ? 200 : status).json(data);
   } catch (error) {
-    console.error('Error calling Galt app API:', error);
-    return res.status(500).json({ message: 'Failed to submit application to Galt API', error: error.message });
+    console.error("Error calling Galt app API:", error);
+    return res.status(500).json({
+      message: "Failed to submit application to Galt API",
+      error: error.message,
+    });
   }
 };
 
@@ -84,113 +96,152 @@ export const submitFullApp = async (req, res) => {
       // Technician
       FIManager,
       // Customer
-      FirstName, LastName, MiddleInitial, Suffix,
-      HomePhoneNo, BusinessPhoneNo,
-      Address1, City, State, ZipCode, Email,
+      FirstName,
+      LastName,
+      MiddleInitial,
+      Suffix,
+      HomePhoneNo,
+      BusinessPhoneNo,
+      Address1,
+      City,
+      State,
+      ZipCode,
+      Email,
       // Lift
-      VIN, VehicleStatus, Year, Make, Model,
-      DateOfSale, InServiceDate,
-      VehicleSalePrice, MnfWarrantyLength,
+      VIN,
+      VehicleStatus,
+      Year,
+      Make,
+      Model,
+      DateOfSale,
+      InServiceDate,
+      VehicleSalePrice,
+      MnfWarrantyLength,
       // Product selection (from ServiceSelection step)
       ProductType, // "maintenance" | "service_contract"
-      Coverage,    // "1 Motor"|"2 Motor"|"4 Motor" | "Gold"|"Platinum"
+      Coverage, // "1 Motor"|"2 Motor"|"4 Motor" | "Gold"|"Platinum"
       ContractType, // "Post"|"Lean To" (ESC only)
       RetailPrice,
     } = req.body;
 
     // Map our product type to expected ProductID for rate call
     // GALT ProductID 102 = PMP (Maintenance), 103 = ESC (Service Contract)
-    const expectedProductId = ProductType === 'maintenance' ? 102 : 103;
-    const expectedTermMonths = ProductType === 'maintenance' ? 36 : 60;
+    const expectedProductId = ProductType === "maintenance" ? 102 : 103;
+    const expectedTermMonths = ProductType === "maintenance" ? 36 : 60;
 
     // Enforce NEW or USED status (never "N/A")
-    let finalVehicleStatus = 'NEW';
-    if (VehicleStatus === 'USED' || VehicleStatus === 'NEW') {
+    let finalVehicleStatus = "NEW";
+    if (VehicleStatus === "USED" || VehicleStatus === "NEW") {
       finalVehicleStatus = VehicleStatus;
     }
 
     // â”€â”€ Step A: Rate call â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     const ratePayload = {
       ProductID: expectedProductId,
-      ProductId: expectedProductId,
-      productId: expectedProductId,
+      VIN: VIN,
       VehicleSalePrice: parseFloat(VehicleSalePrice) || 0,
       Year: String(Year || new Date().getFullYear()),
-      Make: Make || 'N/A',
-      Model: Model || 'N/A',
+      Make: Make || "N/A",
+      Model: Model || "N/A",
       VehicleStatus: finalVehicleStatus,
       TermMonths: expectedTermMonths,
       Deductible: 0,
+      InServiceDate: InServiceDate,
       CurrentOdometer: 0,
-      OdometerType: 'no',
+      OdometerType: "no",
       TermMiles: 999999,
-      Coverage: Coverage || '',
-      Industry: 'Marine',
-      NewUsed: finalVehicleStatus === 'USED' ? 'Used' : 'New',
+      Coverage: Coverage || "",
+      EngineSize: "0",
+      EngineSizeType: "no",
+      Industry: "Marine",
+      NewUsed: finalVehicleStatus === "USED" ? "Used" : "New",
     };
 
-    const rateResult = await galtFetch('/rateymm.aspx', ratePayload);
-    console.log('[GALT] Rate response:', JSON.stringify(rateResult.data, null, 2));
+    const rateResult = await galtFetch("/rateymm.aspx", ratePayload);
+    console.log("[GALT] Rate response:", JSON.stringify(rateResult.data));
 
     // Extract rate data â€” GALT returns an envelope containing "Premiums" array
     let chosenRate = null;
-    const premiums = rateResult.data?.Premiums || rateResult.data?.premiums || [];
+    const premiums =
+      rateResult.data?.Premiums || rateResult.data?.premiums || [];
 
     if (Array.isArray(premiums) && premiums.length > 0) {
       // Find the premium matching the chosen coverage (e.g. "1 Motor", "Gold", etc.)
-      const matchedPremium = premiums.find(
-        (p) => String(p.Coverage || p.coverage).toLowerCase() === String(Coverage).toLowerCase()
-      ) || premiums[0];
+      const matchedPremium =
+        premiums.find(
+          (p) =>
+            String(p.Coverage || p.coverage).toLowerCase() ===
+            String(Coverage).toLowerCase(),
+        ) || premiums[0];
 
       if (matchedPremium) {
         // Find standard deductible (deductible = 0)
-        const deductibles = matchedPremium.Deductibles || matchedPremium.deductibles || [];
-        const matchedDeductible = deductibles.find((d) => d.Number === 0 || d.number === 0) || deductibles[0];
+        const deductibles =
+          matchedPremium.Deductibles || matchedPremium.deductibles || [];
+        const matchedDeductible =
+          deductibles.find((d) => d.Number === 0 || d.number === 0) ||
+          deductibles[0];
 
         // Parse DealerCost (strip commas and parse as float)
         let dealerCost = 0;
         if (matchedDeductible && matchedDeductible.DealerCost !== undefined) {
-          const rawCost = String(matchedDeductible.DealerCost).replace(/,/g, '');
+          const rawCost = String(matchedDeductible.DealerCost).replace(
+            /,/g,
+            "",
+          );
           dealerCost = parseFloat(rawCost) || 0;
         }
 
         chosenRate = {
-          ProductID: matchedPremium.ProductId || matchedPremium.ProductID || expectedProductId,
+          ProductID:
+            matchedPremium.ProductId ||
+            matchedPremium.ProductID ||
+            expectedProductId,
           Coverage: matchedPremium.Coverage || Coverage,
           TermMonths: matchedPremium.TermMonths || expectedTermMonths,
-          Deductible: matchedDeductible ? (matchedDeductible.Number !== undefined ? matchedDeductible.Number : matchedDeductible.number) : 0,
+          Deductible: matchedDeductible
+            ? matchedDeductible.Number !== undefined
+              ? matchedDeductible.Number
+              : matchedDeductible.number
+            : 0,
           DealerCost: dealerCost,
         };
       }
     }
 
     if (!chosenRate) {
-      console.warn('[GALT] Rate call returned no usable rate. Proceeding with fallback values.');
+      console.warn(
+        "[GALT] Rate call returned no usable rate. Proceeding with fallback values.",
+      );
       chosenRate = {
         ProductID: expectedProductId,
         Coverage: Coverage,
         TermMonths: expectedTermMonths,
         Deductible: 0,
-        DealerCost: expectedProductId === 102 ? 1260.00 : (parseFloat(RetailPrice) * 0.75 || 1000.00), // Sensible dev fallback to prevent Missing Dealer Cost errors
+        DealerCost:
+          expectedProductId === 102
+            ? 1260.0
+            : parseFloat(RetailPrice) * 0.75 || 1000.0, // Sensible dev fallback to prevent Missing Dealer Cost errors
       };
     }
 
     // â”€â”€ Step B: App submission â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     const appPayload = {
       // Technician
-      FIManager: FIManager || 'N/A',
+      FIManager: FIManager || "N/A",
 
       // Customer
-      FirstName, LastName,
-      MiddleInitial: MiddleInitial || '',
-      Suffix: Suffix || '',
+      FirstName,
+      LastName,
+      MiddleInitial: MiddleInitial || "",
+      Suffix: Suffix || "",
       HomePhoneNo,
-      BusinessPhoneNo: BusinessPhoneNo || '',
+      BusinessPhoneNo: BusinessPhoneNo || "",
       Address1,
       City,
       State,
       ZipCode,
-      Email: Email || '',
+      Email: Email || "",
 
       // Lift (VIN = serial number, not a vehicle VIN)
       VIN,
@@ -205,14 +256,17 @@ export const submitFullApp = async (req, res) => {
 
       // Fixed â€” lift has no odometer / mileage
       CurrentOdometer: 0,
-      OdometerType: 'no',
+      OdometerType: "no",
       TermMiles: 999999,
       Deductible: 0,
 
       // FROM RATE response
-      ProductId: chosenRate.ProductID || chosenRate.ProductId || expectedProductId,
-      ProductID: chosenRate.ProductID || chosenRate.ProductId || expectedProductId,
-      productId: chosenRate.ProductID || chosenRate.ProductId || expectedProductId,
+      ProductId:
+        chosenRate.ProductID || chosenRate.ProductId || expectedProductId,
+      ProductID:
+        chosenRate.ProductID || chosenRate.ProductId || expectedProductId,
+      productId:
+        chosenRate.ProductID || chosenRate.ProductId || expectedProductId,
       Coverage: chosenRate.Coverage || Coverage,
       TermMonths: chosenRate.TermMonths || expectedTermMonths,
       DealerCost: chosenRate.DealerCost || 0,
@@ -231,8 +285,8 @@ export const submitFullApp = async (req, res) => {
       // EngineSize, EngineSizeType, MSRPNADAValue
     };
 
-    const appResult = await galtFetch('/app.aspx', appPayload);
-    console.log('[GALT] App response:', JSON.stringify(appResult.data, null, 2));
+    const appResult = await galtFetch("/app.aspx", appPayload);
+    // console.log('[GALT] App response:', JSON.stringify(appResult.data, null, 2));
 
     // If GALT submission is successful, decode and save the PDF
     if (appResult.ok && appResult.data && contractId) {
@@ -240,23 +294,28 @@ export const submitFullApp = async (req, res) => {
       const pdfBase64 = appData.PDF || appResult.data.PDF;
       if (pdfBase64) {
         try {
-          const receiptsDir = path.join(process.cwd(), 'public', 'receipts');
+          const receiptsDir = path.join(process.cwd(), "public", "receipts");
           if (!fs.existsSync(receiptsDir)) {
             fs.mkdirSync(receiptsDir, { recursive: true });
           }
           const fileName = `Contract_GALT_${contractId}.pdf`;
           const filePath = path.join(receiptsDir, fileName);
-          const pdfBuffer = Buffer.from(pdfBase64, 'base64');
+          const pdfBuffer = Buffer.from(pdfBase64, "base64");
           fs.writeFileSync(filePath, pdfBuffer);
           const savedPdfUrl = `/receipts/${fileName}`;
-          
-          await db.query(
-            'UPDATE contracts SET pdf_url = $1 WHERE id = $2',
-            [savedPdfUrl, contractId]
+
+          await db.query("UPDATE contracts SET pdf_url = $1 WHERE id = $2", [
+            savedPdfUrl,
+            contractId,
+          ]);
+          console.log(
+            `[GALT] Saved PDF for contract ${contractId} to ${savedPdfUrl}`,
           );
-          console.log(`[GALT] Saved PDF for contract ${contractId} to ${savedPdfUrl}`);
         } catch (saveErr) {
-          console.error('[GALT] Failed to save GALT PDF or update database:', saveErr);
+          console.error(
+            "[GALT] Failed to save GALT PDF or update database:",
+            saveErr,
+          );
         }
       }
     }
@@ -269,8 +328,11 @@ export const submitFullApp = async (req, res) => {
 
     return res.status(appResult.ok ? 200 : appResult.status).json(responseBody);
   } catch (error) {
-    console.error('Error in submitFullApp:', error);
-    return res.status(500).json({ message: 'Failed to complete GALT application flow', error: error.message });
+    console.error("Error in submitFullApp:", error);
+    return res.status(500).json({
+      message: "Failed to complete GALT application flow",
+      error: error.message,
+    });
   }
 };
 
@@ -279,11 +341,14 @@ export const submitFullApp = async (req, res) => {
  */
 export const getAppPdf = async (req, res) => {
   try {
-    const { data, ok, status } = await galtFetch('/apppdf.aspx', req.body);
+    const { data, ok, status } = await galtFetch("/apppdf.aspx", req.body);
     return res.status(ok ? 200 : status).json(data);
   } catch (error) {
-    console.error('Error calling Galt apppdf API:', error);
-    return res.status(500).json({ message: 'Failed to retrieve application PDF from Galt API', error: error.message });
+    console.error("Error calling Galt apppdf API:", error);
+    return res.status(500).json({
+      message: "Failed to retrieve application PDF from Galt API",
+      error: error.message,
+    });
   }
 };
 
@@ -292,11 +357,14 @@ export const getAppPdf = async (req, res) => {
  */
 export const voidApp = async (req, res) => {
   try {
-    const { data, ok, status } = await galtFetch('/void.aspx', req.body);
+    const { data, ok, status } = await galtFetch("/void.aspx", req.body);
     return res.status(ok ? 200 : status).json(data);
   } catch (error) {
-    console.error('Error calling Galt void API:', error);
-    return res.status(500).json({ message: 'Failed to void application in Galt API', error: error.message });
+    console.error("Error calling Galt void API:", error);
+    return res.status(500).json({
+      message: "Failed to void application in Galt API",
+      error: error.message,
+    });
   }
 };
 
@@ -305,11 +373,14 @@ export const voidApp = async (req, res) => {
  */
 export const checkVin = async (req, res) => {
   try {
-    const { data, ok, status } = await galtFetch('/vincheck.aspx', req.body);
+    const { data, ok, status } = await galtFetch("/vincheck.aspx", req.body);
     return res.status(ok ? 200 : status).json(data);
   } catch (error) {
-    console.error('Error calling Galt vincheck API:', error);
-    return res.status(500).json({ message: 'Failed to perform VIN check with Galt API', error: error.message });
+    console.error("Error calling Galt vincheck API:", error);
+    return res.status(500).json({
+      message: "Failed to perform VIN check with Galt API",
+      error: error.message,
+    });
   }
 };
 
@@ -318,14 +389,13 @@ export const checkVin = async (req, res) => {
  */
 export const getStandardRate = async (req, res) => {
   try {
-    const { data, ok, status } = await galtFetch('/rate.aspx', req.body);
+    const { data, ok, status } = await galtFetch("/rate.aspx", req.body);
     return res.status(ok ? 200 : status).json(data);
   } catch (error) {
-    console.error('Error calling Galt standard rate API:', error);
-    return res.status(500).json({ message: 'Failed to retrieve standard rate from Galt API', error: error.message });
+    console.error("Error calling Galt standard rate API:", error);
+    return res.status(500).json({
+      message: "Failed to retrieve standard rate from Galt API",
+      error: error.message,
+    });
   }
 };
-
-
-
-
