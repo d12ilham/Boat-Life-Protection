@@ -32,7 +32,7 @@ const CheckoutForm = ({ contract_id }) => {
     const { error } = await stripe.confirmPayment({
       elements,
       confirmParams: {
-        return_url: `${window.location.origin}/checkout-success?contract_id=${contract_id}`,
+        return_url: `${window.location.origin}/payment-status/${contract_id}`,
       },
     });
 
