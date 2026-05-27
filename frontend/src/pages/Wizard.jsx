@@ -93,9 +93,9 @@ const Wizard = () => {
       </div>
 
       {/* Unified Frame Portal Card */}
-      <div className="w-full max-w-5xl mx-auto bg-white rounded-3xl border border-slate-200 shadow-xl overflow-hidden relative z-0 flex flex-col animate-in zoom-in-98 duration-400">
+      <div className="w-full max-w-5xl mx-auto bg-white rounded-3xl border border-slate-200 shadow-xl relative z-0 flex flex-col animate-in zoom-in-98 duration-400">
         {/* Navy Header Block */}
-        <div className="bg-[#2F4269] px-6 sm:px-10 py-6 flex items-center justify-center">
+        <div className="bg-[#2F4269] px-6 sm:px-10 py-6 flex items-center justify-center rounded-t-[22px]">
           <div className="flex items-center gap-4">
             <h2 className="text-white text-base sm:text-lg tracking-tight leading-tight font-semibold">
               Boat Lift Protection — Field Portal
@@ -126,9 +126,7 @@ const Wizard = () => {
                       : "bg-white border-slate-200 text-slate-400"
                 }`}
               >
-                <span className="text-sm">
-                  {isCompleted ? "✓" : s.emoji}
-                </span>
+                <span className="text-sm">{isCompleted ? "✓" : s.emoji}</span>
                 <span className={isActive ? "font-bold text-brand-900" : ""}>
                   {s.title}
                 </span>

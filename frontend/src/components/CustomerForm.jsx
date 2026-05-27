@@ -314,9 +314,10 @@ const CustomerForm = ({ onNext, onBack }) => {
                     60-Point Inspection Required — Used Lift
                   </h4>
                   <p className="text-amber-700 text-xs mt-0.5 font-semibold">
-                    A $400 inspection fee applies. If the lift passes, the $400 is
-                    applied toward the contract price. If it fails, remediation work
-                    is required before the contract can be issued.
+                    A $400 inspection fee applies. If the lift passes, the $400
+                    is applied toward the contract price. If it fails,
+                    remediation work is required before the contract can be
+                    issued.
                   </p>
                 </div>
               </div>
@@ -355,7 +356,8 @@ const CustomerForm = ({ onNext, onBack }) => {
                 {inspectionResult === "PASS" && (
                   <div className="mt-3 flex items-center gap-2 text-[#0A5C28] text-xs font-semibold bg-[#E3F9E9] border border-[#A3E5B7] px-4 py-2.5 rounded-lg shadow-xs">
                     <CheckCircle2 className="w-4 h-4" />
-                    Inspection confirmed passed. The $400 fee will be applied toward the contract. Submission unlocked.
+                    Inspection confirmed passed. The $400 fee will be applied
+                    toward the contract. Submission unlocked.
                   </div>
                 )}
                 {inspectionResult === "FAIL" && (
@@ -364,9 +366,10 @@ const CustomerForm = ({ onNext, onBack }) => {
                       Lift failed inspection
                     </p>
                     <p className="text-red-700">
-                      The customer may opt for service/remediation work (additional
-                      charge). Once BLP signs off on completion, return to this
-                      screen, mark as PASSED, and proceed with the contract.
+                      The customer may opt for service/remediation work
+                      (additional charge). Once BLP signs off on completion,
+                      return to this screen, mark as PASSED, and proceed with
+                      the contract.
                     </p>
                   </div>
                 )}
@@ -385,7 +388,8 @@ const CustomerForm = ({ onNext, onBack }) => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
               <div className="relative">
                 <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
-                  Technician On-Site Name <span className="text-red-500">*</span>
+                  Technician On-Site Name{" "}
+                  <span className="text-red-500">*</span>
                 </label>
                 <div className="relative rounded-xl">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
@@ -627,7 +631,8 @@ const CustomerForm = ({ onNext, onBack }) => {
 
               <div>
                 <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
-                  Serial Number (VIN / SN) <span className="text-red-500">*</span>
+                  Serial Number (VIN / SN){" "}
+                  <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
@@ -722,7 +727,8 @@ const CustomerForm = ({ onNext, onBack }) => {
 
               <div>
                 <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
-                  Manufacturer Warranty Length (Months) <span className="text-red-500">*</span>
+                  Manufacturer Warranty Length (Months){" "}
+                  <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="number"
@@ -735,55 +741,12 @@ const CustomerForm = ({ onNext, onBack }) => {
                   onChange={handleChange}
                 />
               </div>
-
-              {/* Fixed / Auto-Populated Parameters */}
-              <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl text-[10px] text-slate-400 font-semibold space-y-1 shadow-inner">
-                <div className="text-slate-500 uppercase tracking-wider font-bold mb-1 border-b pb-1">
-                  Auto-Populated API Parameters
-                </div>
-                <div>
-                  VehicleStatus:{" "}
-                  <strong className="text-slate-600">
-                    {servicePlan?.vehicleStatus || "NEW"}
-                  </strong>
-                </div>
-                <div>
-                  Odometer Reading: <strong className="text-slate-600">0</strong> &bull; Type: <strong className="text-slate-600">no</strong>
-                </div>
-                <div>
-                  Term Miles Cap: <strong className="text-slate-600">999,999</strong>
-                </div>
-                <div>
-                  Deductible: <strong className="text-slate-600">$0</strong>
-                </div>
-                <div>
-                  Coverage:{" "}
-                  <strong className="text-slate-600">
-                    {servicePlan?.coverage || "—"}
-                  </strong>
-                  {servicePlan?.contractType && (
-                    <>
-                      {" "}
-                      &bull; Contract Type:{" "}
-                      <strong className="text-slate-600">
-                        {servicePlan.contractType}
-                      </strong>
-                    </>
-                  )}
-                </div>
-                <div>
-                  Surcharges / ReqFields: <strong className="text-slate-600">[] (empty)</strong>
-                </div>
-                <div className="pt-1 border-t mt-1 text-slate-400 italic font-medium">
-                  Lienholder, AmountFinanced, APR, EngineSize — omitted (not applicable to lifts)
-                </div>
-              </div>
             </div>
           </div>
         </div>
 
         {/* Footer Navigation Bar */}
-        <div className="p-6 bg-slate-50 border-t border-slate-200/80 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="p-6 bg-slate-50 border-t border-slate-200/80 flex flex-col sm:flex-row items-center justify-between gap-4 rounded-b-[22px]">
           {submitBlocked ? (
             <div className="flex items-center gap-2 text-amber-700 text-xs font-semibold bg-amber-50 border border-amber-200 px-4 py-2 rounded-xl shadow-xs">
               <AlertTriangle className="w-4 h-4 shrink-0" />
@@ -791,7 +754,8 @@ const CustomerForm = ({ onNext, onBack }) => {
             </div>
           ) : (
             <div className="text-xs text-slate-400 font-semibold leading-relaxed">
-              Confirm all details. Continuing will generate the official digital GALT contract.
+              Confirm all details. Continuing will generate the official digital
+              GALT contract.
             </div>
           )}
 
@@ -819,9 +783,24 @@ const CustomerForm = ({ onNext, onBack }) => {
             >
               {loading ? (
                 <span className="flex items-center gap-2">
-                  <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                  <svg
+                    className="animate-spin h-4 w-4 text-white"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                    />
                   </svg>
                   Generating GALT contract...
                 </span>

@@ -72,7 +72,7 @@ function App() {
                 </Routes>
               </main>
 
-              <footer className="mt-6 pb-2 text-sm text-slate-400 text-center">
+              <footer className="mt-10 pb-2 text-sm text-slate-400 text-center">
                 © {new Date().getFullYear()} Boat Lift Protection · All rights
                 reserved
               </footer>

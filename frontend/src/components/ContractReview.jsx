@@ -258,7 +258,7 @@ const ContractReview = ({ onNext, onBack }) => {
       </div>
 
       {/* Footer Navigation Bar */}
-      <div className="p-6 bg-slate-50 border-t border-slate-200/80 flex items-center justify-between">
+      <div className="p-6 bg-slate-50 border-t border-slate-200/80 flex items-center justify-between rounded-b-[22px]">
         <button
           type="button"
           onClick={() => {
