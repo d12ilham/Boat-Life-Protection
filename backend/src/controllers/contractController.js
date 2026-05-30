@@ -1,4 +1,7 @@
 import db from '../config/db.js';
+import { stampSignaturesOnPdf } from '../services/pdfService.js';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 /**
  * POST /api/customer-init
@@ -112,6 +115,37 @@ export const signContract = async (req, res) => {
       "UPDATE contracts SET signature_name = $1, status = 'signed' WHERE id = $2",
       [signature_name, contract_id]
     );
+
+    // Dynamic PDF signature placement
+    const contractResult = await db.query(
+      "SELECT pdf_url, galt_signatures, technician_name FROM contracts WHERE id = $1",
+      [contract_id]
+    );
+
+    if (contractResult.rows.length > 0) {
+      const contract = contractResult.rows[0];
+      const { pdf_url, galt_signatures, technician_name } = contract;
+
+      if (pdf_url && galt_signatures) {
+        // Resolve absolute PDF path
+        const __filename = fileURLToPath(import.meta.url);
+        const __dirname = path.dirname(__filename);
+        const receiptsDir = path.join(__dirname, '..', '..', 'public', 'receipts');
+        const pdfPath = path.join(receiptsDir, path.basename(pdf_url));
+
+        let signatures = [];
+        try {
+          signatures = typeof galt_signatures === 'string' ? JSON.parse(galt_signatures) : galt_signatures;
+        } catch (e) {
+          console.error('[signContract] Failed to parse signatures JSON:', e);
+        }
+
+        if (Array.isArray(signatures) && signatures.length > 0) {
+          await stampSignaturesOnPdf(pdfPath, signatures, signature_name, technician_name);
+        }
+      }
+    }
+
     res.json({ message: 'Contract digitally signed successfully' });
   } catch (error) {
     console.error('Error in signContract', error);

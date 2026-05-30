@@ -14,6 +14,7 @@ const ContractReview = ({ onNext, onBack }) => {
     galtContractNo,
     galtApplicationId,
     galtPdf,
+    galtSignatures,
   } = useFlow();
 
   const { user } = useAuth();
@@ -91,9 +92,54 @@ const ContractReview = ({ onNext, onBack }) => {
       if (!canvas) return;
       canvas.height = viewport.height;
       canvas.width = viewport.width;
-      page.render({ canvasContext: canvas.getContext("2d"), viewport });
+      const ctx = canvas.getContext("2d");
+      
+      const renderTask = page.render({ canvasContext: ctx, viewport });
+      
+      renderTask.promise.then(() => {
+        if (accepted && signatureName && galtSignatures && galtSignatures.length > 0) {
+          const pageNum = i + 1;
+          const pageHeight = viewport.viewBox[3]; // PDF page height in points
+          const scale = viewport.scale;
+          
+          galtSignatures.forEach(sig => {
+            const { Type, Left, Right, Bottom, Top, Pages } = sig;
+            const hasPage = Pages.some(p => p.Page === pageNum);
+            if (!hasPage) return;
+            
+            let text = "";
+            let isCursive = false;
+            if (Type === "CustomerSignature") {
+              text = signatureName;
+              isCursive = true;
+            } else if (Type === "DealerSignature") {
+              text = technicianName || "Authorized Representative";
+              isCursive = true;
+            } else if (Type === "CustomerDate") {
+              text = new Date().toLocaleDateString("en-US");
+            }
+            
+            if (!text) return;
+            
+            // Navy ink for signing
+            ctx.fillStyle = "rgba(0, 30, 110, 0.9)";
+            
+            if (isCursive) {
+              ctx.font = `italic bold ${Math.min(28, (Top - Bottom) * scale * 0.75)}px "Caveat", "Brush Script MT", cursive, serif`;
+            } else {
+              ctx.font = `bold ${Math.min(24, (Top - Bottom) * scale * 0.65)}px "Courier New", Courier, monospace`;
+            }
+            
+            // Translate PDF bottom-left origin to HTML top-left canvas origin
+            const x = (Left + 4) * scale;
+            const y = (pageHeight - Bottom - 4) * scale;
+            
+            ctx.fillText(text, x, y);
+          });
+        }
+      });
     });
-  }, [pages]);
+  }, [pages, accepted, signatureName, galtSignatures]);
 
   // ── Signature handler ─────────────────────────────────────────────────────
   const handleSign = async () => {
@@ -154,7 +200,6 @@ const ContractReview = ({ onNext, onBack }) => {
             {!pdfLoading && pages.length > 0 && (
               <div className="border border-slate-200 rounded-xl bg-slate-100 shadow-inner overflow-hidden mx-auto max-w-[850px]">
                 {pages.map(({ viewport }, i) => {
-                  const isLast = i === pages.length - 1;
                   return (
                     <div
                       key={i}
@@ -169,43 +214,6 @@ const ContractReview = ({ onNext, onBack }) => {
                       {pages.length > 1 && (
                         <div className="absolute top-2 right-3 text-[10px] font-bold text-slate-400 bg-white/80 backdrop-blur-sm rounded px-1.5 py-0.5 shadow-sm select-none pointer-events-none">
                           {i + 1} / {pages.length}
-                        </div>
-                      )}
-
-                      {/* Cursive e-Signature overlay — last page only */}
-                      {isLast && signatureName && accepted && (
-                        <div
-                          className="absolute"
-                          style={{
-                            bottom: "8.3%",
-                            right: "26%",
-                            fontFamily: "Caveat, cursive",
-                            fontSize: "clamp(1.4rem, 4vw, 2.4rem)",
-                            color: "#1e3a8a",
-                            transform: "rotate(-1.5deg)",
-                            userSelect: "none",
-                            fontWeight: "bold",
-                            pointerEvents: "none",
-                          }}
-                        >
-                          {signatureName}
-                        </div>
-                      )}
-
-                      {/* Date overlay — last page only */}
-                      {isLast && accepted && (
-                        <div
-                          className="absolute font-mono font-bold"
-                          style={{
-                            bottom: "7.9%",
-                            right: "12%",
-                            fontSize: "clamp(10px, 1.5vw, 13px)",
-                            color: "#1e3a8a",
-                            userSelect: "none",
-                            pointerEvents: "none",
-                          }}
-                        >
-                          {new Date().toLocaleDateString()}
                         </div>
                       )}
                     </div>

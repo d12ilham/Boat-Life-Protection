@@ -40,7 +40,8 @@ async function run() {
       ADD COLUMN IF NOT EXISTS term_miles VARCHAR(50) DEFAULT '999999',
       ADD COLUMN IF NOT EXISTS amount_financed NUMERIC(10, 2) DEFAULT 0,
       ADD COLUMN IF NOT EXISTS finance_term INTEGER DEFAULT 0,
-      ADD COLUMN IF NOT EXISTS apr NUMERIC(10, 2) DEFAULT 0;
+      ADD COLUMN IF NOT EXISTS apr NUMERIC(10, 2) DEFAULT 0,
+      ADD COLUMN IF NOT EXISTS galt_signatures JSONB;
     `);
     console.log('✅ Altered contracts table.');
 

@@ -96,7 +96,16 @@ const PaymentStatus = () => {
                             <button className="flex-1 bg-[#2f4269] text-white hover:bg-[#1a2844] rounded-xl px-6 py-3.5 text-xs sm:text-sm font-bold transition-all shadow-sm hover:shadow-md cursor-pointer flex justify-center items-center gap-2" onClick={() => navigate('/')}>
                                 Start New Contract
                             </button>
-                            <button className="flex-1 border border-slate-200 text-slate-600 hover:bg-slate-100/60 bg-white rounded-xl px-6 py-3.5 text-xs sm:text-sm font-bold transition-all shadow-sm hover:shadow-md cursor-pointer flex justify-center items-center gap-2">
+                            <button 
+                                className="flex-1 border border-slate-200 text-slate-600 hover:bg-slate-100/60 bg-white rounded-xl px-6 py-3.5 text-xs sm:text-sm font-bold transition-all shadow-sm hover:shadow-md cursor-pointer flex justify-center items-center gap-2"
+                                onClick={() => {
+                                    if (contract?.pdf_url) {
+                                        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+                                        const cleanBase = apiUrl.endsWith('/api') ? apiUrl.substring(0, apiUrl.length - 4) : apiUrl;
+                                        window.open(`${cleanBase}${contract.pdf_url}`, '_blank');
+                                    }
+                                }}
+                            >
                                 <Download className="w-4 h-4" /> Download Receipt
                             </button>
                         </div>

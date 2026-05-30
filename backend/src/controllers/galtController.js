@@ -304,8 +304,10 @@ export const submitFullApp = async (req, res) => {
           fs.writeFileSync(filePath, pdfBuffer);
           const savedPdfUrl = `/receipts/${fileName}`;
 
-          await db.query("UPDATE contracts SET pdf_url = $1 WHERE id = $2", [
+          const signatures = appData.Signatures || appResult.data.Signatures || [];
+          await db.query("UPDATE contracts SET pdf_url = $1, galt_signatures = $2 WHERE id = $3", [
             savedPdfUrl,
+            JSON.stringify(signatures),
             contractId,
           ]);
           console.log(

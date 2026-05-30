@@ -84,6 +84,7 @@ const CustomerForm = ({ onNext, onBack }) => {
     setGaltDealerCost,
     inspectionPassed,
     setInspectionPassed,
+    setGaltSignatures,
   } = useFlow();
 
   const { user } = useAuth();
@@ -196,6 +197,7 @@ const CustomerForm = ({ onNext, onBack }) => {
       setGaltContractNo("");
       setGaltApplicationId(null);
       setGaltDealerCost(null);
+      setGaltSignatures([]);
 
       // 2. Submit to GALT via two-step orchestrated endpoint
       const isCustomQuote = servicePlan.price === "Custom Quote";
@@ -257,10 +259,12 @@ const CustomerForm = ({ onNext, onBack }) => {
               app.ApplicationID || galtData.ApplicationID || null,
             );
             setGaltDealerCost(galtData._rateUsed?.DealerCost || null);
+            setGaltSignatures(app.Signatures || galtData.Signatures || []);
           } else if (galtData?.Result === "SUCCESS") {
             setGaltPdf(galtData.PDF || null);
             setGaltContractNo(galtData.ContractNo || "");
             setGaltApplicationId(galtData.ApplicationID || null);
+            setGaltSignatures(galtData.Signatures || []);
           } else {
             console.warn(
               "[GALT] Non-success or unexpected response:",

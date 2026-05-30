@@ -44,16 +44,69 @@ export const triggerAllAutomations = async (contract_id, customer_id, paymentInt
 async function sendEmails(customer, contract, pdfPath) {
   console.log('Sending emails to Customer, Shop, and Boat Lift Protection...');
   
-  const testAccount = await nodemailer.createTestAccount();
-  const transporter = nodemailer.createTransport({
-    host: "smtp.ethereal.email",
-    port: 587,
-    secure: false,
-    auth: {
-      user: testAccount.user,
-      pass: testAccount.pass,
-    },
-  });
+  let transporter;
+  
+  // Use real SMTP environment variables if they are configured
+  if (process.env.SMTP_HOST && !process.env.SMTP_HOST.includes('xxxx') && !process.env.SMTP_PASS.includes('xxxx')) {
+    console.log('[Email] Using production SMTP configuration from env');
+    transporter = nodemailer.createTransport({
+      host: process.env.SMTP_HOST,
+      port: parseInt(process.env.SMTP_PORT) || 587,
+      secure: process.env.SMTP_PORT === '465',
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
+      },
+      connectionTimeout: 5000,
+      greetingTimeout: 5000,
+      socketTimeout: 5000
+    });
+  } else {
+    // Attempt Ethereal test account with short timeout, fallback to silent mock transport
+    try {
+      console.log('[Email] Fetching Ethereal test account with timeouts...');
+      const testAccount = await Promise.race([
+        nodemailer.createTestAccount(),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Ethereal setup timed out')), 4000))
+      ]);
+      
+      transporter = nodemailer.createTransport({
+        host: "smtp.ethereal.email",
+        port: 587,
+        secure: false,
+        auth: {
+          user: testAccount.user,
+          pass: testAccount.pass,
+        },
+        connectionTimeout: 5000,
+        greetingTimeout: 5000,
+        socketTimeout: 5000
+      });
+    } catch (err) {
+      console.warn('[Email] SMTP Setup failed (offline or firewall). Falling back to mock email transport:', err.message);
+      // Fallback: A dummy transporter that successfully simulates email sending
+      transporter = {
+        sendMail: async (options) => {
+          console.log(`[Email Mock] Simulating send to ${options.to}. Subject: ${options.subject}`);
+          return { messageId: 'mock-id-' + Date.now() };
+        }
+      };
+    }
+  }
+
+  // Define helper utility to log Ethereal preview URLs safely
+  const logPreviewUrl = (info) => {
+    try {
+      if (info && typeof nodemailer.getTestMessageUrl === 'function') {
+        const url = nodemailer.getTestMessageUrl(info);
+        if (url) {
+          console.log(`[Email] Ethereal preview URL: ${url}`);
+        }
+      }
+    } catch (e) {
+      // ignore
+    }
+  };
 
   // Attach the GALT-provided PDF if it exists on disk
   const attachments = [];
@@ -77,7 +130,7 @@ async function sendEmails(customer, contract, pdfPath) {
       text: `Hello ${fullName},\n\nThank you for choosing Boat Lift Protection. Your payment of $${contract.amount} for the ${contract.service_plan} was successful.\n\nPlease find your official GALT service contract attached.\n\nRegards,\nBoat Lift Team`,
       attachments
     });
-    console.log(`[Email] Customer Receipt preview URL: ${nodemailer.getTestMessageUrl(custInfo)}`);
+    logPreviewUrl(custInfo);
   } catch (e) {
     console.error(`[Email] Failed customer send:`, e);
   }
@@ -85,13 +138,13 @@ async function sendEmails(customer, contract, pdfPath) {
   // 2. Email to Admin
   try {
     const adminInfo = await transporter.sendMail({
-      from: `"System Automations" <system@boatlift.local>`,
+      from: `"Boat Lift Protection" <${adminEmail}>`,
       to: adminEmail,
       subject: `[NEW SALE] ${contract.service_plan} - ${fullName}`,
       text: `New Contract Signed!\n\nCustomer: ${fullName}\nEmail: ${customer.email}\nPhone: ${customer.home_phone || customer.phone}\nAddress: ${customer.street_address || customer.address}\n\nAmount: $${contract.amount}\nTechnician: ${contract.technician_name}\n\n${pdfPath ? 'GALT Contract PDF Attached.' : 'No PDF available - GALT submission may have failed.'}`,
       attachments
     });
-    console.log(`[Email] Admin Notification preview URL: ${nodemailer.getTestMessageUrl(adminInfo)}`);
+    logPreviewUrl(adminInfo);
   } catch (e) {
     console.error(`[Email] Failed admin send:`, e);
   }
@@ -99,12 +152,12 @@ async function sendEmails(customer, contract, pdfPath) {
   // 3. Email to Vendor
   try {
     const vendorInfo = await transporter.sendMail({
-      from: `"System Automations" <system@boatlift.local>`,
+      from: `"Boat Lift Protection" <${adminEmail}>`,
       to: vendorEmail,
       subject: `[SALE CONFIRMATION] You closed a deal!`,
       text: `Great job, ${contract.technician_name || 'Vendor'}!\n\nYou successfully sold a ${contract.service_plan} plan to ${fullName} for $${contract.amount}.\nKeep up the great work!`,
     });
-    console.log(`[Email] Vendor Notification preview URL: ${nodemailer.getTestMessageUrl(vendorInfo)}`);
+    logPreviewUrl(vendorInfo);
   } catch(e) {
     console.error(`[Email] Failed vendor send:`, e);
   }

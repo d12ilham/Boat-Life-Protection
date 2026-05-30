@@ -15,6 +15,7 @@ export const FlowProvider = ({ children }) => {
   const [galtContractNo, setGaltContractNo] = useState('');
   const [galtApplicationId, setGaltApplicationId] = useState(null);
   const [galtDealerCost, setGaltDealerCost] = useState(null);
+  const [galtSignatures, setGaltSignatures] = useState([]);
   // Used lift inspection gate -- must be confirmed before GALT submission on USED lifts
   const [inspectionPassed, setInspectionPassed] = useState(false);
 
@@ -30,6 +31,7 @@ export const FlowProvider = ({ children }) => {
     galtApplicationId, setGaltApplicationId,
     galtDealerCost, setGaltDealerCost,
     inspectionPassed, setInspectionPassed,
+    galtSignatures, setGaltSignatures,
   };
 
   return (
