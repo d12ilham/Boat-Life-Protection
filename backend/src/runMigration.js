@@ -1,8 +1,8 @@
-import db from './config/db.js';
+import db from "./config/db.js";
 
 async function run() {
   try {
-    console.log('Running database migration...');
+    console.log("Running database migration...");
 
     // Alter customers table
     await db.query(`
@@ -18,7 +18,7 @@ async function run() {
       ADD COLUMN IF NOT EXISTS state VARCHAR(255),
       ADD COLUMN IF NOT EXISTS zip_code VARCHAR(50);
     `);
-    console.log('âœ… Altered customers table.');
+    console.log("âœ… Altered customers table.");
 
     // Alter contracts table
     await db.query(`
@@ -43,7 +43,7 @@ async function run() {
       ADD COLUMN IF NOT EXISTS apr NUMERIC(10, 2) DEFAULT 0,
       ADD COLUMN IF NOT EXISTS galt_signatures JSONB;
     `);
-    console.log('âœ… Altered contracts table.');
+    console.log("Altered contracts table.");
 
     // Create qbo_tokens table
     await db.query(`
@@ -56,12 +56,12 @@ async function run() {
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
-    console.log('âœ… Created qbo_tokens table.');
+    console.log("Created qbo_tokens table.");
 
-    console.log('âœ… Migration complete!');
+    console.log("Migration complete!");
     process.exit(0);
   } catch (err) {
-    console.error('âŒ Migration failed:', err);
+    console.error("Migration failed:", err);
     process.exit(1);
   }
 }

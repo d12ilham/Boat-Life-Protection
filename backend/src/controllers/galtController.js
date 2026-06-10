@@ -24,7 +24,7 @@ const galtFetch = async (endpoint, payload) => {
       process.env.GALT_USERNAME + ":" + process.env.GALT_PASSWORD,
     ).toString("base64");
 
-  console.log("[GALT] POST", endpoint, JSON.stringify(fullPayload));
+  // console.log("[GALT] POST", endpoint, JSON.stringify(fullPayload));
 
   const response = await fetch(baseUrl + endpoint, {
     method: "POST",
@@ -158,7 +158,7 @@ export const submitFullApp = async (req, res) => {
     };
 
     const rateResult = await galtFetch("/rateymm.aspx", ratePayload);
-    console.log("[GALT] Rate response:", JSON.stringify(rateResult.data));
+    // console.log("[GALT] Rate response:", JSON.stringify(rateResult.data));
 
     // Extract rate data â€” GALT returns an envelope containing "Premiums" array
     let chosenRate = null;
@@ -304,12 +304,12 @@ export const submitFullApp = async (req, res) => {
           fs.writeFileSync(filePath, pdfBuffer);
           const savedPdfUrl = `/receipts/${fileName}`;
 
-          const signatures = appData.Signatures || appResult.data.Signatures || [];
-          await db.query("UPDATE contracts SET pdf_url = $1, galt_signatures = $2 WHERE id = $3", [
-            savedPdfUrl,
-            JSON.stringify(signatures),
-            contractId,
-          ]);
+          const signatures =
+            appData.Signatures || appResult.data.Signatures || [];
+          await db.query(
+            "UPDATE contracts SET pdf_url = $1, galt_signatures = $2 WHERE id = $3",
+            [savedPdfUrl, JSON.stringify(signatures), contractId],
+          );
           console.log(
             `[GALT] Saved PDF for contract ${contractId} to ${savedPdfUrl}`,
           );

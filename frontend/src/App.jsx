@@ -4,7 +4,7 @@ import { FlowProvider } from "./context/FlowContext";
 import { AuthProvider, useAuth, apiClient } from "./context/AuthContext";
 import Wizard from "./pages/Wizard";
 import PaymentStatus from "./pages/PaymentStatus";
-import { LogOut, Waves } from "lucide-react";
+import { LogOut, Waves, CheckCircle2, XCircle } from "lucide-react";
 
 const Header = () => {
   const { isAuthenticated, user, logout } = useAuth();
@@ -111,8 +111,12 @@ const QboNotification = () => {
         ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
         : 'bg-red-50 text-red-800 border-red-200'
     }`}>
-      <div className="flex items-center gap-2">
-        <span className="text-lg">{status === 'success' ? 'âœ…' : 'âŒ'}</span>
+      <div className="flex items-center gap-3">
+        {status === 'success' ? (
+          <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+        ) : (
+          <XCircle className="w-5 h-5 text-rose-600 shrink-0" />
+        )}
         <div>
           <p className="font-bold">
             {status === 'success' ? 'Successfully connected to QuickBooks!' : 'QuickBooks connection failed.'}
@@ -120,7 +124,7 @@ const QboNotification = () => {
           {message && <p className="text-xs mt-0.5">{message}</p>}
         </div>
       </div>
-      <button onClick={handleDismiss} className="text-slate-400 hover:text-slate-600 font-bold px-2">
+      <button onClick={handleDismiss} className="text-slate-400 hover:text-slate-600 font-bold px-2 cursor-pointer">
         Dismiss
       </button>
     </div>

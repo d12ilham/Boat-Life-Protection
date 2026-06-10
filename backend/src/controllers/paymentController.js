@@ -66,7 +66,7 @@ export const stripeWebhook = async (req, res) => {
   let event;
   const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET || "whsec_dummy";
 
-  console.log("Payment webhook received:", req.body);
+  console.log("Payment webhook received");
 
   try {
     event = stripe.webhooks.constructEvent(req.body, sig, endpointSecret);

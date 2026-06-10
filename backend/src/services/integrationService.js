@@ -1,8 +1,9 @@
-import db from "../config/db.js";
+﻿import db from "../config/db.js";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import nodemailer from "nodemailer";
+import { createQboInvoice } from "./qboService.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -109,15 +110,6 @@ async function sendEmails(customer, contract, pdfPath) {
         "[Email] SMTP Setup failed (offline or firewall). Falling back to mock email transport:",
         err.message,
       );
-      // Fallback: A dummy transporter that successfully simulates email sending
-      transporter = {
-        sendMail: async (options) => {
-          console.log(
-            `[Email Mock] Simulating send to ${options.to}. Subject: ${options.subject}`,
-          );
-          return { messageId: "mock-id-" + Date.now() };
-        },
-      };
     }
   }
 
@@ -204,7 +196,10 @@ async function createQuickBooksSale(customer, contract, paymentIntent) {
   try {
     return await createQboInvoice(customer, contract, paymentIntent);
   } catch (err) {
-    console.error('[Integration Service] QuickBooks Invoice creation failed:', err.message);
+    console.error(
+      "[Integration Service] QuickBooks Invoice creation failed:",
+      err.message,
+    );
     return false;
   }
 }
