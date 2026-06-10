@@ -1,4 +1,4 @@
-﻿import db from "../config/db.js";
+import db from "../config/db.js";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -201,5 +201,10 @@ async function updateHubSpot(customer, contract) {
 
 async function createQuickBooksSale(customer, contract, paymentIntent) {
   console.log("Creating entry in QuickBooks...");
-  return true;
+  try {
+    return await createQboInvoice(customer, contract, paymentIntent);
+  } catch (err) {
+    console.error('[Integration Service] QuickBooks Invoice creation failed:', err.message);
+    return false;
+  }
 }

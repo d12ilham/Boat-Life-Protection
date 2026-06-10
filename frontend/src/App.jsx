@@ -1,20 +1,44 @@
-import React from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { BrowserRouter as Router, Routes, Route, useSearchParams } from "react-router-dom";
 import { FlowProvider } from "./context/FlowContext";
-import { AuthProvider, useAuth } from "./context/AuthContext";
+import { AuthProvider, useAuth, apiClient } from "./context/AuthContext";
 import Wizard from "./pages/Wizard";
 import PaymentStatus from "./pages/PaymentStatus";
 import { LogOut, Waves } from "lucide-react";
 
 const Header = () => {
   const { isAuthenticated, user, logout } = useAuth();
+  const [qboConnected, setQboConnected] = useState(false);
+  const [qboLoading, setQboLoading] = useState(false);
+
+  useEffect(() => {
+    if (!isAuthenticated || user?.role !== 'admin') return;
+
+    const checkQboStatus = async () => {
+      setQboLoading(true);
+      try {
+        const res = await apiClient.get('/qbo/status');
+        setQboConnected(res.data.connected);
+      } catch (err) {
+        console.error('Failed to fetch QBO status:', err);
+      } finally {
+        setQboLoading(false);
+      }
+    };
+
+    checkQboStatus();
+  }, [isAuthenticated, user]);
 
   if (!isAuthenticated) return null;
+
+  const handleQboConnect = () => {
+    window.location.href = `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/qbo/connect`;
+  };
 
   return (
     <header className="w-full mb-8 mx-auto">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
+        <div className="flex items-center gap-4">
           <div className="flex items-center mb-1">
             <img
               src="/logo.png"
@@ -22,6 +46,25 @@ const Header = () => {
               className="h-10 object-contain"
             />
           </div>
+          
+          {user?.role === 'admin' && (
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/70 border border-slate-200 shadow-sm text-xs font-bold transition-all">
+              <span className={`w-2 h-2 rounded-full ${qboConnected ? 'bg-emerald-500 animate-pulse' : 'bg-rose-400'}`} />
+              <span className="text-slate-600">QuickBooks:</span>
+              {qboLoading ? (
+                <span className="text-slate-400 font-medium">Checking...</span>
+              ) : qboConnected ? (
+                <span className="text-emerald-700">Connected</span>
+              ) : (
+                <button
+                  onClick={handleQboConnect}
+                  className="text-brand-600 hover:text-brand-800 underline decoration-dotted cursor-pointer"
+                >
+                  Connect QBO
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
         {isAuthenticated && (
@@ -49,6 +92,41 @@ const Header = () => {
   );
 };
 
+const QboNotification = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const status = searchParams.get('qbo_connection');
+  const message = searchParams.get('message');
+  const [visible, setVisible] = useState(true);
+
+  if (!status || !visible) return null;
+
+  const handleDismiss = () => {
+    setVisible(false);
+    setSearchParams({});
+  };
+
+  return (
+    <div className={`p-4 mb-4 rounded-xl border text-sm flex items-center justify-between gap-4 ${
+      status === 'success'
+        ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+        : 'bg-red-50 text-red-800 border-red-200'
+    }`}>
+      <div className="flex items-center gap-2">
+        <span className="text-lg">{status === 'success' ? 'âœ…' : 'âŒ'}</span>
+        <div>
+          <p className="font-bold">
+            {status === 'success' ? 'Successfully connected to QuickBooks!' : 'QuickBooks connection failed.'}
+          </p>
+          {message && <p className="text-xs mt-0.5">{message}</p>}
+        </div>
+      </div>
+      <button onClick={handleDismiss} className="text-slate-400 hover:text-slate-600 font-bold px-2">
+        Dismiss
+      </button>
+    </div>
+  );
+};
+
 function App() {
   return (
     <Router>
@@ -63,6 +141,7 @@ function App() {
               <Header />
 
               <main className="w-full mx-auto flex-1 flex flex-col justify-start transition-all duration-300">
+                <QboNotification />
                 <Routes>
                   <Route path="/" element={<Wizard />} />
                   <Route

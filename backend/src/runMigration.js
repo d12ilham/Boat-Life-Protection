@@ -1,4 +1,4 @@
-﻿import db from './config/db.js';
+import db from './config/db.js';
 
 async function run() {
   try {
@@ -18,7 +18,7 @@ async function run() {
       ADD COLUMN IF NOT EXISTS state VARCHAR(255),
       ADD COLUMN IF NOT EXISTS zip_code VARCHAR(50);
     `);
-    console.log('✅ Altered customers table.');
+    console.log('âœ… Altered customers table.');
 
     // Alter contracts table
     await db.query(`
@@ -43,12 +43,25 @@ async function run() {
       ADD COLUMN IF NOT EXISTS apr NUMERIC(10, 2) DEFAULT 0,
       ADD COLUMN IF NOT EXISTS galt_signatures JSONB;
     `);
-    console.log('✅ Altered contracts table.');
+    console.log('âœ… Altered contracts table.');
 
-    console.log('✅ Migration complete!');
+    // Create qbo_tokens table
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS qbo_tokens (
+        id SERIAL PRIMARY KEY,
+        access_token TEXT NOT NULL,
+        refresh_token TEXT NOT NULL,
+        realm_id TEXT NOT NULL,
+        expires_at TIMESTAMP NOT NULL,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+    console.log('âœ… Created qbo_tokens table.');
+
+    console.log('âœ… Migration complete!');
     process.exit(0);
   } catch (err) {
-    console.error('❌ Migration failed:', err);
+    console.error('âŒ Migration failed:', err);
     process.exit(1);
   }
 }

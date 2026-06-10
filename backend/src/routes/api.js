@@ -4,6 +4,7 @@ import { login, refreshToken, logout } from '../controllers/authController.js';
 import { initCustomerAndContract, signContract, getContract } from '../controllers/contractController.js';
 import { createPaymentIntent, stripeWebhook } from '../controllers/paymentController.js';
 import { getRate, submitApp, submitFullApp, getAppPdf, voidApp, checkVin, getStandardRate } from '../controllers/galtController.js';
+import { connectQBO, callbackQBO, getQboStatus } from '../controllers/qboController.js';
 
 const router = express.Router();
 
@@ -45,5 +46,10 @@ router.post('/galt/vincheck', requireAuth, checkVin);
 
 // ── Stripe Webhook (must be raw body, no auth middleware) ─────────────────────
 router.post('/webhook/stripe', stripeWebhook);
+
+// -- QuickBooks Routes ----------------------------------------------------------
+router.get('/qbo/connect', connectQBO);
+router.get('/qbo/callback', callbackQBO);
+router.get('/qbo/status', requireAuth, getQboStatus);
 
 export default router;

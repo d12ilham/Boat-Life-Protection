@@ -44,3 +44,13 @@ ALTER TABLE contracts ADD COLUMN IF NOT EXISTS galt_signatures JSONB;
 
 -- NOTE: Default user seeding is handled by initDb.js using runtime bcrypt hashing.
 -- Do NOT add static password hashes here.
+
+-- QuickBooks tokens table
+CREATE TABLE IF NOT EXISTS qbo_tokens (
+  id SERIAL PRIMARY KEY,
+  access_token TEXT NOT NULL,
+  refresh_token TEXT NOT NULL,
+  realm_id TEXT NOT NULL,
+  expires_at TIMESTAMP NOT NULL,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
