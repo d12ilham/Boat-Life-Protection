@@ -18,7 +18,7 @@ async function run() {
       ADD COLUMN IF NOT EXISTS state VARCHAR(255),
       ADD COLUMN IF NOT EXISTS zip_code VARCHAR(50);
     `);
-    console.log("âœ… Altered customers table.");
+    console.log("Altered customers table.");
 
     // Alter contracts table
     await db.query(`

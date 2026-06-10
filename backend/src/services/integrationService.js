@@ -173,17 +173,17 @@ async function sendEmails(customer, contract, pdfPath) {
   }
 
   // 3. Email to Vendor
-  try {
-    const vendorInfo = await transporter.sendMail({
-      from: `"Boat Lift Protection" <${fromEmail}>`,
-      to: vendorEmail,
-      subject: `[SALE CONFIRMATION] You closed a deal!`,
-      text: `Great job, ${contract.technician_name || "Vendor"}!\n\nYou successfully sold a ${contract.service_plan} plan to ${fullName} for $${contract.amount}.\nKeep up the great work!`,
-    });
-    logPreviewUrl(vendorInfo);
-  } catch (e) {
-    console.error(`[Email] Failed vendor send:`, e);
-  }
+  // try {
+  //   const vendorInfo = await transporter.sendMail({
+  //     from: `"Boat Lift Protection" <${fromEmail}>`,
+  //     to: vendorEmail,
+  //     subject: `[SALE CONFIRMATION] You closed a deal!`,
+  //     text: `Great job, ${contract.technician_name || "Vendor"}!\n\nYou successfully sold a ${contract.service_plan} plan to ${fullName} for $${contract.amount}.\nKeep up the great work!`,
+  //   });
+  //   logPreviewUrl(vendorInfo);
+  // } catch (e) {
+  //   console.error(`[Email] Failed vendor send:`, e);
+  // }
 }
 
 async function updateHubSpot(customer, contract) {
