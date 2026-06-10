@@ -1,4 +1,4 @@
-﻿import fs from "fs";
+import fs from "fs";
 import path from "path";
 import db from "../config/db.js";
 
@@ -307,7 +307,7 @@ export const submitFullApp = async (req, res) => {
           const signatures =
             appData.Signatures || appResult.data.Signatures || [];
           await db.query(
-            "UPDATE contracts SET pdf_url = $1, galt_signatures = $2 WHERE id = $3",
+            "UPDATE contracts SET pdf_url = $1, galt_signatures = $2, galt_sync_status = 'success' WHERE id = $3",
             [savedPdfUrl, JSON.stringify(signatures), contractId],
           );
           console.log(
@@ -318,8 +318,13 @@ export const submitFullApp = async (req, res) => {
             "[GALT] Failed to save GALT PDF or update database:",
             saveErr,
           );
+          await db.query("UPDATE contracts SET galt_sync_status = 'success' WHERE id = $1", [contractId]).catch(console.error);
         }
+      } else {
+        await db.query("UPDATE contracts SET galt_sync_status = 'success' WHERE id = $1", [contractId]).catch(console.error);
       }
+    } else if (contractId) {
+      await db.query("UPDATE contracts SET galt_sync_status = 'failed' WHERE id = $1", [contractId]).catch(console.error);
     }
 
     // Attach the rate data to response for context
@@ -331,6 +336,9 @@ export const submitFullApp = async (req, res) => {
     return res.status(appResult.ok ? 200 : appResult.status).json(responseBody);
   } catch (error) {
     console.error("Error in submitFullApp:", error);
+    if (req.body.contractId) {
+      await db.query("UPDATE contracts SET galt_sync_status = 'failed' WHERE id = $1", [req.body.contractId]).catch(console.error);
+    }
     return res.status(500).json({
       message: "Failed to complete GALT application flow",
       error: error.message,

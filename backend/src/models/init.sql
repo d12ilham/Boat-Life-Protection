@@ -54,3 +54,7 @@ CREATE TABLE IF NOT EXISTS qbo_tokens (
   expires_at TIMESTAMP NOT NULL,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+ALTER TABLE contracts ADD COLUMN IF NOT EXISTS qbo_sync_status VARCHAR(50) DEFAULT 'pending';
+ALTER TABLE contracts ADD COLUMN IF NOT EXISTS hubspot_sync_status VARCHAR(50) DEFAULT 'pending';
+ALTER TABLE contracts ADD COLUMN IF NOT EXISTS email_sent_status VARCHAR(50) DEFAULT 'pending';
+ALTER TABLE contracts ADD COLUMN IF NOT EXISTS galt_sync_status VARCHAR(50) DEFAULT 'pending';

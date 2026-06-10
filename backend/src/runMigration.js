@@ -58,6 +58,16 @@ async function run() {
     `);
     console.log("Created qbo_tokens table.");
 
+    // Add automation status columns to contracts
+    await db.query(`
+      ALTER TABLE contracts
+      ADD COLUMN IF NOT EXISTS qbo_sync_status VARCHAR(50) DEFAULT 'pending',
+      ADD COLUMN IF NOT EXISTS hubspot_sync_status VARCHAR(50) DEFAULT 'pending',
+      ADD COLUMN IF NOT EXISTS email_sent_status VARCHAR(50) DEFAULT 'pending',
+      ADD COLUMN IF NOT EXISTS galt_sync_status VARCHAR(50) DEFAULT 'pending';
+    `);
+    console.log("Added automation status columns to contracts.");
+
     console.log("Migration complete!");
     process.exit(0);
   } catch (err) {

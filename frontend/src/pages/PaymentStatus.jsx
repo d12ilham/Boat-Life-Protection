@@ -27,10 +27,16 @@ const PaymentStatus = () => {
                 
                 if (data.status === 'paid') {
                     setStatus('paid');
+                    const hasPendingAutomations = 
+                        data.qbo_sync_status === 'pending' ||
+                        data.hubspot_sync_status === 'pending' ||
+                        data.email_sent_status === 'pending';
+                        
+                    if (hasPendingAutomations && retryCount < 10) {
+                        setTimeout(() => setRetryCount(prev => prev + 1), 2000);
+                    }
                 } else {
-                    // If it's still pending, we might want to poll for a few seconds 
-                    // because webhooks can be slightly delayed.
-                    if (retryCount < 5) {
+                    if (retryCount < 10) {
                         setTimeout(() => setRetryCount(prev => prev + 1), 2000);
                         setStatus('pending');
                     } else {
@@ -78,16 +84,44 @@ const PaymentStatus = () => {
                             <h4 className="font-bold text-[#2F4269] text-xs uppercase tracking-wider mb-4 border-b border-slate-200/60 pb-2">Automation Status</h4>
                             <ul className="space-y-3.5">
                                 <li className="flex items-center gap-3 font-semibold text-xs text-slate-600">
-                                    <CheckCircle className="w-4.5 h-4.5 text-emerald-600 shrink-0" /> Contract PDF Received from GALT & Emailed
+                                    {contract?.email_sent_status === 'success' ? (
+                                        <CheckCircle className="w-4.5 h-4.5 text-emerald-600 shrink-0" />
+                                    ) : contract?.email_sent_status === 'failed' ? (
+                                        <XCircle className="w-4.5 h-4.5 text-rose-600 shrink-0" />
+                                    ) : (
+                                        <Clock className="w-4.5 h-4.5 text-amber-500 shrink-0 animate-pulse" />
+                                    )}
+                                    Contract PDF Received from GALT & Emailed
                                 </li>
                                 <li className="flex items-center gap-3 font-semibold text-xs text-slate-600">
-                                    <CheckCircle className="w-4.5 h-4.5 text-emerald-600 shrink-0" /> HubSpot CRM Updated
+                                    {contract?.hubspot_sync_status === 'success' ? (
+                                        <CheckCircle className="w-4.5 h-4.5 text-emerald-600 shrink-0" />
+                                    ) : contract?.hubspot_sync_status === 'failed' ? (
+                                        <XCircle className="w-4.5 h-4.5 text-rose-600 shrink-0" />
+                                    ) : (
+                                        <Clock className="w-4.5 h-4.5 text-amber-500 shrink-0 animate-pulse" />
+                                    )}
+                                    HubSpot CRM Updated
                                 </li>
                                 <li className="flex items-center gap-3 font-semibold text-xs text-slate-600">
-                                    <CheckCircle className="w-4.5 h-4.5 text-emerald-600 shrink-0" /> QuickBooks Entry Created
+                                    {contract?.qbo_sync_status === 'success' ? (
+                                        <CheckCircle className="w-4.5 h-4.5 text-emerald-600 shrink-0" />
+                                    ) : contract?.qbo_sync_status === 'failed' ? (
+                                        <XCircle className="w-4.5 h-4.5 text-rose-600 shrink-0" />
+                                    ) : (
+                                        <Clock className="w-4.5 h-4.5 text-amber-500 shrink-0 animate-pulse" />
+                                    )}
+                                    QuickBooks Entry Created
                                 </li>
                                 <li className="flex items-center gap-3 font-semibold text-xs text-slate-600">
-                                    <CheckCircle className="w-4.5 h-4.5 text-emerald-600 shrink-0" /> GALT Enterprises Synced
+                                    {contract?.galt_sync_status === 'success' ? (
+                                        <CheckCircle className="w-4.5 h-4.5 text-emerald-600 shrink-0" />
+                                    ) : contract?.galt_sync_status === 'failed' ? (
+                                        <XCircle className="w-4.5 h-4.5 text-rose-600 shrink-0" />
+                                    ) : (
+                                        <Clock className="w-4.5 h-4.5 text-amber-500 shrink-0 animate-pulse" />
+                                    )}
+                                    GALT Enterprises Synced
                                 </li>
                             </ul>
                         </div>

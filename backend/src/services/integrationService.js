@@ -1,4 +1,4 @@
-﻿import db from "../config/db.js";
+import db from "../config/db.js";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -143,6 +143,9 @@ async function sendEmails(customer, contract, pdfPath) {
     `${customer.first_name || ""} ${customer.middle_initial ? customer.middle_initial + " " : ""}${customer.last_name || ""}${customer.suffix ? " " + customer.suffix : ""}`.trim() ||
     customer.name;
 
+  let customerSent = false;
+  let adminSent = false;
+
   // 1. Email to Customer
   try {
     const custInfo = await transporter.sendMail({
@@ -153,6 +156,7 @@ async function sendEmails(customer, contract, pdfPath) {
       attachments,
     });
     logPreviewUrl(custInfo);
+    customerSent = true;
   } catch (e) {
     console.error(`[Email] Failed customer send:`, e);
   }
@@ -168,6 +172,7 @@ async function sendEmails(customer, contract, pdfPath) {
       attachments,
     });
     logPreviewUrl(adminInfo);
+    adminSent = true;
   } catch (e) {
     console.error(`[Email] Failed admin send:`, e);
   }
@@ -184,22 +189,35 @@ async function sendEmails(customer, contract, pdfPath) {
   // } catch (e) {
   //   console.error(`[Email] Failed vendor send:`, e);
   // }
+
+  const finalStatus = (customerSent && adminSent) ? 'success' : 'failed';
+  await db.query("UPDATE contracts SET email_sent_status = $1 WHERE id = $2", [finalStatus, contract.id]).catch(console.error);
 }
 
 async function updateHubSpot(customer, contract) {
   console.log("Updating HubSpot CRM...");
-  return true;
+  try {
+    await db.query("UPDATE contracts SET hubspot_sync_status = 'success' WHERE id = $1", [contract.id]);
+    return true;
+  } catch (err) {
+    console.error("Failed to update HubSpot status in DB:", err);
+    return false;
+  }
 }
 
 async function createQuickBooksSale(customer, contract, paymentIntent) {
   console.log("Creating entry in QuickBooks...");
   try {
-    return await createQboInvoice(customer, contract, paymentIntent);
+    const success = await createQboInvoice(customer, contract, paymentIntent);
+    const status = success ? 'success' : 'failed';
+    await db.query("UPDATE contracts SET qbo_sync_status = $1 WHERE id = $2", [status, contract.id]);
+    return success;
   } catch (err) {
     console.error(
       "[Integration Service] QuickBooks Invoice creation failed:",
       err.message,
     );
+    await db.query("UPDATE contracts SET qbo_sync_status = 'failed' WHERE id = $1", [contract.id]).catch(console.error);
     return false;
   }
 }
