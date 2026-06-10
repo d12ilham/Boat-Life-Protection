@@ -91,7 +91,7 @@ const getOrCreateQboCustomer = async (accessToken, realmId, customer) => {
   }
 
   // Search by Email
-  const query = `select * from Customer where PrimaryEmailAddr.Address = '${email.replace(/'/g, "\\'")}'`;
+  const query = `select * from Customer where PrimaryEmailAddr = '${email.replace(/'/g, "\\'")}'`;
   const searchUrl = `${baseUrl}/v3/company/${realmId}/query?query=${encodeURIComponent(query)}&minorversion=75`;
 
   const searchRes = await fetch(searchUrl, {
