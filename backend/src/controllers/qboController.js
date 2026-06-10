@@ -42,7 +42,7 @@ export const callbackQBO = async (req, res) => {
   const authHeader = `Basic ${Buffer.from(credentials).toString('base64')}`;
 
   try {
-    const response = await fetch('https://oauth.platform.intuit.com/oauth5/v1/tokens/bearer', {
+    const response = await fetch('https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
