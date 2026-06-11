@@ -4,6 +4,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import nodemailer from "nodemailer";
 import { createQboInvoice } from "./qboService.js";
+import { syncToHubSpot } from "./hubspotService.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -195,12 +196,15 @@ async function sendEmails(customer, contract, pdfPath) {
 }
 
 async function updateHubSpot(customer, contract) {
-  console.log("Updating HubSpot CRM...");
+  console.log("[HubSpot] Starting CRM sync for contract", contract.id);
   try {
+    const result = await syncToHubSpot(customer, contract);
+    console.log("[HubSpot] Synced - contactId=" + result.contactId + ", dealId=" + result.dealId);
     await db.query("UPDATE contracts SET hubspot_sync_status = 'success' WHERE id = $1", [contract.id]);
     return true;
   } catch (err) {
-    console.error("Failed to update HubSpot status in DB:", err);
+    console.error("[HubSpot] Sync failed:", err.message);
+    await db.query("UPDATE contracts SET hubspot_sync_status = 'failed' WHERE id = $1", [contract.id]).catch(console.error);
     return false;
   }
 }
@@ -221,3 +225,4 @@ async function createQuickBooksSale(customer, contract, paymentIntent) {
     return false;
   }
 }
+
