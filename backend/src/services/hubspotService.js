@@ -5,32 +5,13 @@
  *
  * Fields synced:
  *  Contact : firstname, lastname, email, phone, address, city, state, zip
- *  Deal    : dealname, amount, closedate, lift_type (custom), product_purchased (custom)
- *
- * Custom deal properties are auto-created on first run if they do not exist.
+ *  Deal    : dealname, amount, closedate, dealstage, description
+ *            (description contains: product purchased, lift type, date of sale)
  */
 
 import fetch from "node-fetch";
 
 const HUBSPOT_BASE = "https://api.hubapi.com";
-
-// Custom deal properties to auto-provision
-const CUSTOM_DEAL_PROPERTIES = [
-  {
-    name: "lift_type",
-    label: "Lift Type",
-    groupName: "dealinformation",
-    type: "string",
-    fieldType: "text",
-  },
-  {
-    name: "product_purchased",
-    label: "Product Purchased",
-    groupName: "dealinformation",
-    type: "string",
-    fieldType: "text",
-  },
-];
 
 function authHeader() {
   const token = process.env.HUBSPOT_API_KEY;
@@ -39,46 +20,6 @@ function authHeader() {
     Authorization: `Bearer ${token}`,
     "Content-Type": "application/json",
   };
-}
-
-/**
- * Ensure custom deal properties exist. Creates them if missing.
- * Safe to call on every sync — it checks before creating.
- */
-async function ensureCustomDealProperties() {
-  for (const prop of CUSTOM_DEAL_PROPERTIES) {
-    const checkUrl = `${HUBSPOT_BASE}/crm/v3/properties/deals/${prop.name}`;
-    const checkRes = await fetch(checkUrl, {
-      method: "GET",
-      headers: authHeader(),
-    });
-
-    if (checkRes.status === 404) {
-      // Property does not exist — create it
-      const createUrl = `${HUBSPOT_BASE}/crm/v3/properties/deals`;
-      const createRes = await fetch(createUrl, {
-        method: "POST",
-        headers: authHeader(),
-        body: JSON.stringify(prop),
-      });
-
-      if (createRes.ok) {
-        console.log(`[HubSpot] Created custom deal property: ${prop.name}`);
-      } else {
-        const text = await createRes.text();
-        console.warn(
-          `[HubSpot] Could not create property "${prop.name}" (${createRes.status}): ${text}`
-        );
-      }
-    } else if (checkRes.ok) {
-      console.log(`[HubSpot] Property "${prop.name}" already exists — skipping`);
-    } else {
-      const text = await checkRes.text();
-      console.warn(
-        `[HubSpot] Property check for "${prop.name}" returned (${checkRes.status}): ${text}`
-      );
-    }
-  }
 }
 
 async function findContactByEmail(email) {
@@ -140,6 +81,7 @@ async function updateContact(contactId, properties) {
 }
 
 async function createDeal(contactId, dealProperties) {
+  // 1. Create the deal
   const createUrl = `${HUBSPOT_BASE}/crm/v3/objects/deals`;
   const createRes = await fetch(createUrl, {
     method: "POST",
@@ -157,7 +99,7 @@ async function createDeal(contactId, dealProperties) {
   const deal = await createRes.json();
   const dealId = deal.id;
 
-  // Associate the deal with the contact
+  // 2. Associate the deal with the contact
   const assocUrl = `${HUBSPOT_BASE}/crm/v4/objects/deals/${dealId}/associations/contacts/${contactId}`;
   const assocRes = await fetch(assocUrl, {
     method: "PUT",
@@ -181,10 +123,7 @@ async function createDeal(contactId, dealProperties) {
  * Main entry point called by integrationService.js
  */
 export async function syncToHubSpot(customer, contract) {
-  // Ensure custom deal properties exist before creating the deal
-  await ensureCustomDealProperties();
-
-  // Build contact properties
+  // ── Contact upsert ──────────────────────────────────────────────────────
   const contactProperties = {
     email: customer.email,
     firstname:
@@ -200,7 +139,6 @@ export async function syncToHubSpot(customer, contract) {
     zip: customer.zip_code || "",
   };
 
-  // Upsert contact
   let contactId = await findContactByEmail(customer.email);
   if (contactId) {
     console.log(
@@ -212,10 +150,18 @@ export async function syncToHubSpot(customer, contract) {
     contactId = await createContact(contactProperties);
   }
 
-  // Build deal properties
+  // ── Deal creation ────────────────────────────────────────────────────────
   const closedate = contract.date_of_sale
     ? new Date(contract.date_of_sale).toISOString().split("T")[0]
     : new Date().toISOString().split("T")[0];
+
+  // Embed lift_type & product info into the standard `description` field
+  // (avoids needing crm.schemas.deals.write scope for custom properties)
+  const description =
+    `Product Purchased: ${contract.service_plan || "N/A"}\n` +
+    `Lift Type: ${contract.lift_type || "N/A"}\n` +
+    `Date of Sale: ${closedate}\n` +
+    `Amount: $${contract.amount || 0}`;
 
   const dealProperties = {
     dealname: `${customer.first_name || customer.name} - ${contract.service_plan}`,
@@ -223,14 +169,13 @@ export async function syncToHubSpot(customer, contract) {
     closedate: closedate,
     dealstage: "closedwon",
     pipeline: "default",
-    product_purchased: contract.service_plan || "",
-    lift_type: contract.lift_type || "",
+    description: description,
   };
 
   console.log("[HubSpot] Creating deal:", dealProperties.dealname);
   const dealId = await createDeal(contactId, dealProperties);
   console.log(
-    `[HubSpot] Deal ${dealId} created and linked to contact ${contactId}`
+    `[HubSpot] ✅ Deal ${dealId} created and linked to contact ${contactId}`
   );
 
   return { contactId, dealId };
