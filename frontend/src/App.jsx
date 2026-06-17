@@ -1,26 +1,38 @@
-import React, { useEffect, useState } from "react";
-import { BrowserRouter as Router, Routes, Route, useSearchParams } from "react-router-dom";
+﻿import React, { useEffect, useState } from "react";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  useSearchParams,
+} from "react-router-dom";
 import { FlowProvider } from "./context/FlowContext";
 import { AuthProvider, useAuth, apiClient } from "./context/AuthContext";
 import Wizard from "./pages/Wizard";
 import PaymentStatus from "./pages/PaymentStatus";
-import { LogOut, Waves, CheckCircle2, XCircle } from "lucide-react";
+import {
+  LogOut,
+  Waves,
+  CheckCircle2,
+  XCircle,
+  ChevronDown,
+} from "lucide-react";
 
 const Header = () => {
   const { isAuthenticated, user, logout } = useAuth();
   const [qboConnected, setQboConnected] = useState(false);
   const [qboLoading, setQboLoading] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
 
   useEffect(() => {
-    if (!isAuthenticated || user?.role !== 'admin') return;
+    if (!isAuthenticated || user?.role !== "admin") return;
 
     const checkQboStatus = async () => {
       setQboLoading(true);
       try {
-        const res = await apiClient.get('/qbo/status');
+        const res = await apiClient.get("/qbo/status");
         setQboConnected(res.data.connected);
       } catch (err) {
-        console.error('Failed to fetch QBO status:', err);
+        console.error("Failed to fetch QBO status:", err);
       } finally {
         setQboLoading(false);
       }
@@ -29,28 +41,45 @@ const Header = () => {
     checkQboStatus();
   }, [isAuthenticated, user]);
 
+  useEffect(() => {
+    if (!dropdownOpen) return;
+    const handleClickOutside = (event) => {
+      const container = document.getElementById("profile-dropdown-container");
+      if (container && !container.contains(event.target)) {
+        setDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [dropdownOpen]);
+
   if (!isAuthenticated) return null;
 
   const handleQboConnect = () => {
-    window.location.href = `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/qbo/connect`;
+    window.location.href = `${import.meta.env.VITE_API_URL || "http://localhost:5000/api"}/qbo/connect`;
   };
 
   return (
-    <header className="w-full mb-8 mx-auto">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center mb-1">
+    <header className="w-full mb-6 mx-auto select-none">
+      <div className="flex flex-row justify-between gap-4 w-full pb-3 border-b border-slate-200/50 md:border-none">
+        {/* Left Side: Logo & QuickBooks Connection Status */}
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+          {/* Logo */}
+          <div className="flex items-center">
             <img
               src="/logo.png"
               alt="Boat Lift Protection"
-              className="h-10 object-contain"
+              className="h-9 sm:h-10 object-contain"
             />
           </div>
-          
-          {user?.role === 'admin' && (
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/70 border border-slate-200 shadow-sm text-xs font-bold transition-all">
-              <span className={`w-2 h-2 rounded-full ${qboConnected ? 'bg-emerald-500 animate-pulse' : 'bg-rose-400'}`} />
-              <span className="text-slate-600">QuickBooks:</span>
+
+          {/* QuickBooks connection badge */}
+          {isAuthenticated && user?.role === "admin" && (
+            <div className="inline-flex items-center gap-2 self-start sm:self-auto px-3 py-1.5 rounded-full bg-white/70 border border-slate-200 shadow-xs text-xs font-bold transition-all">
+              <span
+                className={`w-2 h-2 rounded-full ${qboConnected ? "bg-emerald-500 animate-pulse" : "bg-rose-500"}`}
+              />
+              <span className="text-slate-650">QuickBooks:</span>
               {qboLoading ? (
                 <span className="text-slate-400 font-medium">Checking...</span>
               ) : qboConnected ? (
@@ -67,24 +96,58 @@ const Header = () => {
           )}
         </div>
 
+        {/* Right Side: Profile Dropdown */}
         {isAuthenticated && (
-          <div className="flex items-center justify-between md:justify-end gap-4 bg-white/50 md:bg-transparent p-3 md:p-0 rounded-2xl md:rounded-none shadow-sm md:shadow-none border border-white md:border-transparent">
-            <div className="text-left md:text-right">
-              <p className="text-sm font-semibold text-slate-800">
-                {user?.username || "Technician"}
-              </p>
-              <p className="text-[10px] text-brand-600 uppercase tracking-wider">
-                {user?.role || "User"}
-              </p>
-            </div>
+          <div className="relative" id="profile-dropdown-container">
+            {/* Dropdown Trigger */}
             <button
-              onClick={logout}
-              title="Sign out"
-              className="flex items-center gap-2 px-3 py-2.5 text-sm font-semibold text-slate-600 hover:text-red-700 bg-white hover:bg-red-50 border border-slate-200 hover:border-red-200 rounded-xl transition-all duration-200 shadow-sm shadow-slate-100"
+              onClick={() => setDropdownOpen(!dropdownOpen)}
+              className="flex items-center gap-2 px-1.5 py-1 md:px-3 md:py-1.5 rounded-full border border-slate-250 bg-white hover:bg-slate-50 cursor-pointer shadow-xs transition-all select-none"
             >
-              <LogOut className="w-4 h-4" />
-              <span className="md:hidden">Sign Out</span>
+              {/* User Avatar circle */}
+              <div className="w-7 h-7 rounded-full bg-brand-500 text-white flex items-center justify-center font-bold text-xs uppercase shadow-inner shrink-0">
+                {user?.username?.[0] || "U"}
+              </div>
+
+              {/* Profile Details */}
+              <div className="flex-col text-left pr-1 leading-tight hidden sm:flex">
+                <span className="text-xs sm:text-sm font-bold text-slate-800">
+                  {user?.username || "Technician"}
+                </span>
+                <span className="text-[9px] text-brand-600 font-bold uppercase tracking-wider hidden sm:inline">
+                  {user?.role || "User"}
+                </span>
+              </div>
+
+              {/* Chevron icon */}
+              <ChevronDown
+                className={`w-4 h-4 text-slate-500 transition-transform duration-200 ${dropdownOpen ? "rotate-180" : ""}`}
+              />
             </button>
+
+            {/* Dropdown Menu */}
+            {dropdownOpen && (
+              <div className="absolute right-0 mt-2 w-48 bg-white border border-slate-200 rounded-2xl shadow-lg p-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+                <div className="px-3 py-2 border-b border-slate-100 sm:hidden">
+                  <p className="text-xs font-bold text-slate-800">
+                    {user?.username}
+                  </p>
+                  <p className="text-[9px] text-brand-600 font-bold uppercase tracking-wider">
+                    {user?.role}
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    setDropdownOpen(false);
+                    logout();
+                  }}
+                  className="w-full flex items-center gap-2.5 px-3 py-2.5 text-xs font-bold text-slate-700 hover:text-red-700 hover:bg-red-50 rounded-xl transition-all cursor-pointer"
+                >
+                  <LogOut className="w-4 h-4 text-slate-500" />
+                  Sign Out
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -94,8 +157,8 @@ const Header = () => {
 
 const QboNotification = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const status = searchParams.get('qbo_connection');
-  const message = searchParams.get('message');
+  const status = searchParams.get("qbo_connection");
+  const message = searchParams.get("message");
   const [visible, setVisible] = useState(true);
 
   if (!status || !visible) return null;
@@ -106,25 +169,32 @@ const QboNotification = () => {
   };
 
   return (
-    <div className={`p-4 mb-4 rounded-xl border text-sm flex items-center justify-between gap-4 ${
-      status === 'success'
-        ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-        : 'bg-red-50 text-red-800 border-red-200'
-    }`}>
+    <div
+      className={`p-4 mb-4 rounded-xl border text-sm flex items-center justify-between gap-4 ${
+        status === "success"
+          ? "bg-emerald-50 text-emerald-800 border-emerald-200"
+          : "bg-red-50 text-red-800 border-red-200"
+      }`}
+    >
       <div className="flex items-center gap-3">
-        {status === 'success' ? (
+        {status === "success" ? (
           <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
         ) : (
           <XCircle className="w-5 h-5 text-rose-600 shrink-0" />
         )}
         <div>
           <p className="font-bold">
-            {status === 'success' ? 'Successfully connected to QuickBooks!' : 'QuickBooks connection failed.'}
+            {status === "success"
+              ? "Successfully connected to QuickBooks!"
+              : "QuickBooks connection failed."}
           </p>
           {message && <p className="text-xs mt-0.5">{message}</p>}
         </div>
       </div>
-      <button onClick={handleDismiss} className="text-slate-400 hover:text-slate-600 font-bold px-2 cursor-pointer">
+      <button
+        onClick={handleDismiss}
+        className="text-slate-400 hover:text-slate-600 font-bold px-2 cursor-pointer"
+      >
         Dismiss
       </button>
     </div>
@@ -141,7 +211,7 @@ function App() {
             <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-brand-200/40 rounded-full mix-blend-multiply filter blur-3xl" />
             <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-sky-200/40 rounded-full mix-blend-multiply filter blur-3xl" />
 
-            <div className="relative z-10 flex flex-col min-h-screen p-5 font-sans">
+            <div className="relative z-10 flex flex-col min-h-screen p-3 md:p-5 font-sans">
               <Header />
 
               <main className="w-full mx-auto flex-1 flex flex-col justify-start transition-all duration-300">

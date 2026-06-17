@@ -2,13 +2,10 @@ import React, { useState, useEffect } from "react";
 import { useFlow } from "../context/FlowContext";
 import { useAuth } from "../context/AuthContext";
 import {
-  ShieldCheck,
-  Anchor,
   ChevronDown,
   PhoneCall,
   AlertTriangle,
   CheckCircle2,
-  Info,
   Check,
 } from "lucide-react";
 
@@ -105,14 +102,24 @@ const SERVICE_CONTRACT_COVERAGE = ["Gold", "Platinum"];
 const SERVICE_CONTRACT_TYPES = ["Post", "Lean To"];
 
 // Premium custom floating dropdown component
-const CustomDropdown = ({ label, value, onChange, options, placeholder, icon: Icon, required, disabled }) => {
+const CustomDropdown = ({
+  label,
+  value,
+  onChange,
+  options,
+  placeholder,
+  required,
+  disabled,
+}) => {
   const [isOpen, setIsOpen] = useState(false);
-  
+
   // Close dropdown on click outside
   useEffect(() => {
     if (!isOpen) return;
     const handleClickOutside = (event) => {
-      const container = document.getElementById(`dropdown-${label.replace(/\s+/g, '-').toLowerCase()}`);
+      const container = document.getElementById(
+        `dropdown-${label.replace(/\s+/g, "-").toLowerCase()}`,
+      );
       if (container && !container.contains(event.target)) {
         setIsOpen(false);
       }
@@ -125,10 +132,10 @@ const CustomDropdown = ({ label, value, onChange, options, placeholder, icon: Ic
 
   return (
     <div
-      id={`dropdown-${label.replace(/\s+/g, '-').toLowerCase()}`}
+      id={`dropdown-${label.replace(/\s+/g, "-").toLowerCase()}`}
       className="relative space-y-2.5"
     >
-      <label className="block text-xs font-bold text-slate-700">
+      <label className="block text-sm font-bold text-slate-800">
         {label} {required && <span className="text-red-500">*</span>}
       </label>
       <div className="relative">
@@ -136,28 +143,27 @@ const CustomDropdown = ({ label, value, onChange, options, placeholder, icon: Ic
           type="button"
           disabled={disabled}
           onClick={() => setIsOpen(!isOpen)}
-          className={`w-full relative flex items-center rounded-2xl border-2 pl-11 pr-12 py-3.5 bg-white font-semibold text-slate-800 text-left transition-all duration-200 cursor-pointer ${
+          className={`w-full relative flex items-center rounded-2xl border-2 pl-5 pr-12 py-3.5 bg-white font-bold text-slate-800 text-left transition-all duration-205 cursor-pointer ${
             disabled
               ? "bg-slate-100/70 border-slate-200 text-slate-400 cursor-not-allowed"
               : isOpen
                 ? "border-brand-500 ring-4 ring-brand-500/5 shadow-xs"
-                : "border-slate-200 hover:border-slate-300 hover:shadow-xs"
+                : "border-slate-300 hover:border-slate-400 hover:shadow-xs"
           }`}
         >
           <div className="flex items-center gap-3">
-            {Icon && (
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <Icon className={`w-5 h-5 ${disabled ? 'text-slate-300' : 'text-brand-500'}`} />
-              </div>
-            )}
-            <span className={!selectedOption ? "text-slate-400 font-medium" : "text-slate-800"}>
+            <span
+              className={
+                !selectedOption ? "text-slate-500 font-bold" : "text-slate-900"
+              }
+            >
               {selectedOption ? selectedOption.label : placeholder}
             </span>
           </div>
           <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
             <ChevronDown
               className={`w-5 h-5 transition-transform duration-200 ${
-                disabled ? "text-slate-300" : "text-slate-500"
+                disabled ? "text-slate-300" : "text-slate-600"
               } ${isOpen ? "rotate-180" : ""}`}
             />
           </div>
@@ -177,20 +183,20 @@ const CustomDropdown = ({ label, value, onChange, options, placeholder, icon: Ic
                   }}
                   className={`w-full text-left rounded-xl px-4 py-3 flex items-center justify-between transition-all duration-150 cursor-pointer ${
                     isSelected
-                      ? "bg-brand-50 text-brand-900 font-semibold"
-                      : "hover:bg-slate-50 text-slate-700 font-medium"
+                      ? "bg-brand-50 text-brand-900 font-bold"
+                      : "hover:bg-slate-50 text-slate-700 font-semibold"
                   }`}
                 >
                   <div className="flex flex-col">
                     <span className="text-sm">{opt.label}</span>
                     {opt.subtext && (
-                      <span className="text-[10px] text-slate-400 font-normal mt-0.5">
+                      <span className="text-[10px] text-slate-500 font-medium mt-0.5">
                         {opt.subtext}
                       </span>
                     )}
                   </div>
                   {isSelected && (
-                    <Check className="w-4 h-4 text-brand-600 shrink-0" />
+                    <Check className="w-4 h-4 text-brand-650 shrink-0" />
                   )}
                 </button>
               );
@@ -207,33 +213,22 @@ const RadioGroup = ({ label, options, value, onChange, required }) => {
   const getCardStyle = (opt, isActive) => {
     if (opt === "Gold") {
       return isActive
-        ? "border-amber-400 bg-amber-50/60 text-amber-900 scale-[1.01] ring-4 ring-amber-400/5 shadow-xs"
-        : "bg-white border-slate-200 text-slate-600 hover:border-amber-200 hover:bg-amber-50/5 hover:shadow-xs";
+        ? "bg-amber-600 border-amber-700 text-white scale-[1.01] shadow-md"
+        : "bg-white border-slate-300 text-slate-800 hover:border-slate-400 hover:shadow-xs";
     }
     if (opt === "Platinum") {
       return isActive
-        ? "border-indigo-400 bg-indigo-50/40 text-indigo-900 scale-[1.01] ring-4 ring-indigo-400/5 shadow-xs"
-        : "bg-white border-slate-200 text-slate-600 hover:border-indigo-200 hover:bg-indigo-50/5 hover:shadow-xs";
+        ? "bg-indigo-700 border-indigo-800 text-white scale-[1.01] shadow-md"
+        : "bg-white border-slate-300 text-slate-800 hover:border-slate-400 hover:shadow-xs";
     }
     return isActive
-      ? "bg-brand-50 border-brand-500 text-brand-900 scale-[1.01] ring-4 ring-brand-500/5 shadow-xs"
-      : "bg-white border-slate-200 text-slate-600 hover:border-brand-200 hover:bg-brand-50/5 hover:shadow-xs";
-  };
-
-  const getEmoji = (opt) => {
-    if (opt === "Gold") return "🥇";
-    if (opt === "Platinum") return "💎";
-    if (opt.includes("1 Motor")) return "⚙️";
-    if (opt.includes("2 Motor")) return "⚙️⚙️";
-    if (opt.includes("4 Motor")) return "⚙️⚙️⚙️⚙️";
-    if (opt === "Post") return "🛟";
-    if (opt === "Lean To") return "⚓";
-    return "";
+      ? "bg-[#2f4269] border-[#2f4269] text-white scale-[1.01] shadow-md"
+      : "bg-white border-slate-300 text-slate-800 hover:border-slate-400 hover:shadow-xs";
   };
 
   const getSubtext = (opt) => {
     if (opt === "Gold") return "Standard parts & motor coverage";
-    if (opt === "Platinum") return "Full comprehensive wrap cover";
+    if (opt === "Platinum") return "Full comprehensive wrap cover (+$500)";
     if (opt === "1 Motor") return "1 boat lift motor supported";
     if (opt === "2 Motor") return "2 boat lift motors supported";
     if (opt === "4 Motor") return "4 boat lift motors supported";
@@ -244,10 +239,12 @@ const RadioGroup = ({ label, options, value, onChange, required }) => {
 
   return (
     <div className="space-y-3">
-      <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest">
+      <label className="block text-sm font-bold text-slate-600">
         {label} {required && <span className="text-red-500">*</span>}
       </label>
-      <div className={`grid grid-cols-1 ${options.length === 2 ? 'sm:grid-cols-2' : 'sm:grid-cols-3'} gap-4`}>
+      <div
+        className={`grid grid-cols-1 ${options.length === 2 ? "sm:grid-cols-2" : "sm:grid-cols-3"} gap-4`}
+      >
         {options.map((opt) => {
           const isActive = value === opt;
           return (
@@ -255,14 +252,19 @@ const RadioGroup = ({ label, options, value, onChange, required }) => {
               key={opt}
               type="button"
               onClick={() => onChange(opt)}
-              className={`py-4 px-5 rounded-2xl border-2 transition-all duration-200 cursor-pointer flex flex-col items-center justify-center text-center ${getCardStyle(
+              className={`py-5 px-5 rounded-2xl border-2 transition-all duration-200 cursor-pointer flex flex-col items-center justify-center text-center ${getCardStyle(
                 opt,
                 isActive,
               )}`}
             >
-              <span className="text-2xl mb-1.5">{getEmoji(opt)}</span>
-              <span className="text-sm font-semibold tracking-tight">{opt}</span>
-              <span className="text-[10px] text-slate-400 font-medium mt-1 leading-normal">
+              <span className="text-xl font-bold uppercase tracking-tight">
+                {opt}
+              </span>
+              <span
+                className={`text-sm mt-1 leading-normal ${
+                  isActive ? "text-white/95" : "text-slate-500"
+                }`}
+              >
                 {getSubtext(opt)}
               </span>
             </button>
@@ -354,11 +356,12 @@ const ServiceSelection = ({ onNext }) => {
       selectedCat &&
       !isCustomQuote
     ) {
+      const addonFee = coverage === "Platinum" ? 500 : 0;
       setServicePlan({
         id: "service_contract",
         productId: 103,
         name: "Boat Lift Service Contract (ESC)",
-        price: selectedCat.retailPrice,
+        price: selectedCat.retailPrice + addonFee,
         months: 60,
         vehicleStatus,
         coverage, // "Gold" | "Platinum"
@@ -367,7 +370,7 @@ const ServiceSelection = ({ onNext }) => {
         liftCategory: selectedCat.category,
         weightRange: selectedCat.weightRange,
         vehicleSalePrice: selectedCat.salePrice,
-        retailPrice: selectedCat.retailPrice,
+        retailPrice: selectedCat.retailPrice + addonFee,
       });
       onNext();
     }
@@ -376,14 +379,16 @@ const ServiceSelection = ({ onNext }) => {
   const calculatedPrice = selectedCat
     ? selectedPlanId === "maintenance"
       ? 3000
-      : selectedCat.retailPrice
+      : selectedCat.retailPrice === "Custom Quote"
+        ? "Custom Quote"
+        : selectedCat.retailPrice +
+          (selectedPlanId === "service_contract" && coverage === "Platinum"
+            ? 500
+            : 0)
     : 0;
 
   const isUsed = vehicleStatus === "USED";
-  const finalCalculatedPrice =
-    calculatedPrice !== "Custom Quote"
-      ? calculatedPrice - (isUsed ? 400 : 0)
-      : "Custom Quote";
+  const finalCalculatedPrice = calculatedPrice;
 
   // Mapping options for our CustomDropdown
   const liftTypeOptions = Object.keys(liftData).map((type) => {
@@ -411,13 +416,10 @@ const ServiceSelection = ({ onNext }) => {
   return (
     <div className="animate-in fade-in duration-300 flex flex-col">
       {/* Scrollable Content Body */}
-      <div className="p-6 sm:p-10 space-y-8">
+      <div className="p-3 md:p-5 lg:p-10 space-y-8">
         {/* Info Alert Banner inside matching gray panel */}
-        <div className="bg-slate-50/50 border border-slate-200/60 rounded-2xl px-5 py-4 flex items-center gap-4 shadow-sm animate-in fade-in duration-300">
-          <div className="bg-brand-50 border border-brand-200 p-2.5 rounded-xl text-brand-650 shrink-0">
-            <Info className="w-5 h-5" />
-          </div>
-          <p className="text-slate-600 text-xs sm:text-sm font-semibold leading-relaxed">
+        <div className="bg-slate-50/50 border border-slate-200/65 rounded-2xl px-5 py-4 shadow-sm animate-in fade-in duration-300">
+          <p className="text-slate-800 text-xs sm:text-sm leading-relaxed">
             Select the product and lift details below. Pricing will
             auto-populate based on your selections — no manual entry required.
           </p>
@@ -425,10 +427,10 @@ const ServiceSelection = ({ onNext }) => {
 
         {/* PRODUCT SELECTION inside matching gray panel */}
         <div className="animate-in fade-in slide-in-from-top-4 duration-300 bg-slate-50/50 p-6 rounded-2xl border border-slate-200/60 space-y-4 shadow-sm">
-          <h5 className="font-bold text-slate-400 text-xs uppercase tracking-wider border-b border-slate-200/60 pb-2">
+          <h5 className="font-bold text-slate-600 text-sm uppercase tracking-wider border-b border-slate-200/60 pb-2">
             Product Selection
           </h5>
-          <label className="block text-xs font-bold text-slate-700">
+          <label className="block text-sm font-bold text-slate-800">
             Product type <span className="text-red-500">*</span>
           </label>
 
@@ -439,18 +441,37 @@ const ServiceSelection = ({ onNext }) => {
               onClick={() => handlePlanSelect("maintenance")}
               className={`py-6 px-6 rounded-2xl border-2 transition-all duration-200 cursor-pointer flex flex-col items-center justify-center text-center ${
                 selectedPlanId === "maintenance"
-                  ? "border-brand-500 bg-brand-50/20 text-brand-900 scale-[1.01] ring-4 ring-brand-500/5 shadow-xs"
-                  : "bg-white border-slate-200 text-slate-500 hover:border-slate-300 hover:bg-slate-50 hover:shadow-xs"
+                  ? "border-[#2f4269] bg-[#2f4269] text-white scale-[1.01] shadow-md"
+                  : "bg-white border-slate-300 text-slate-800 hover:border-slate-400 hover:shadow-xs"
               }`}
             >
-              <span className="text-3xl mb-2">🔧</span>
-              <span className="text-sm font-semibold tracking-tight">Maintenance Program</span>
-              <span className="text-[10px] text-slate-400 font-medium mt-1 leading-normal">
+              <span className="text-lg md:text-2xl font-bold uppercase tracking-tight">
+                Maintenance Program
+              </span>
+              <span
+                className={`text-sm mt-1 leading-normal ${
+                  selectedPlanId === "maintenance"
+                    ? "text-slate-200"
+                    : "text-slate-500"
+                }`}
+              >
                 Prepaid scheduled maintenance
               </span>
               <div className="mt-3 flex flex-col items-center">
-                <span className={`text-2xl font-extrabold ${selectedPlanId === 'maintenance' ? 'text-brand-900' : 'text-slate-800'}`}>$3,000</span>
-                <span className="text-[9px] text-slate-400 font-semibold mt-0.5">flat fee · 36 months</span>
+                <span
+                  className={`text-2xl font-extrabold ${selectedPlanId === "maintenance" ? "text-white" : "text-slate-900"}`}
+                >
+                  $3,000
+                </span>
+                <span
+                  className={`text-sm mt-0.5 ${
+                    selectedPlanId === "maintenance"
+                      ? "text-slate-300"
+                      : "text-slate-500"
+                  }`}
+                >
+                  flat fee · 36 months
+                </span>
               </div>
             </button>
 
@@ -460,18 +481,37 @@ const ServiceSelection = ({ onNext }) => {
               onClick={() => handlePlanSelect("service_contract")}
               className={`py-6 px-6 rounded-2xl border-2 transition-all duration-200 cursor-pointer flex flex-col items-center justify-center text-center ${
                 selectedPlanId === "service_contract"
-                  ? "border-brand-500 bg-brand-50/20 text-brand-900 scale-[1.01] ring-4 ring-brand-500/5 shadow-xs"
-                  : "bg-white border-slate-200 text-slate-500 hover:border-slate-300 hover:bg-slate-50 hover:shadow-xs"
+                  ? "border-[#2f4269] bg-[#2f4269] text-white scale-[1.01] shadow-md"
+                  : "bg-white border-slate-300 text-slate-800 hover:border-slate-400 hover:shadow-xs"
               }`}
             >
-              <span className="text-3xl mb-2">🛡️</span>
-              <span className="text-sm font-semibold tracking-tight">Service Contract</span>
-              <span className="text-[10px] text-slate-400 font-medium mt-1 leading-normal">
+              <span className="text-lg md:text-2xl font-bold uppercase tracking-tight">
+                Service Contract
+              </span>
+              <span
+                className={`text-sm mt-1 leading-normal ${
+                  selectedPlanId === "service_contract"
+                    ? "text-slate-200"
+                    : "text-slate-500"
+                }`}
+              >
                 Component failure protection
               </span>
               <div className="mt-3 flex flex-col items-center">
-                <span className={`text-2xl font-extrabold ${selectedPlanId === 'service_contract' ? 'text-brand-900' : 'text-slate-800'}`}>Price Varies</span>
-                <span className="text-[9px] text-slate-400 font-semibold mt-0.5">by lift size · 60 months</span>
+                <span
+                  className={`text-2xl font-extrabold ${selectedPlanId === "service_contract" ? "text-white" : "text-slate-900"}`}
+                >
+                  Price Varies
+                </span>
+                <span
+                  className={`text-sm mt-0.5 ${
+                    selectedPlanId === "service_contract"
+                      ? "text-slate-300"
+                      : "text-slate-500"
+                  }`}
+                >
+                  by lift size · 60 months
+                </span>
               </div>
             </button>
           </div>
@@ -480,7 +520,7 @@ const ServiceSelection = ({ onNext }) => {
         {/* Lift Status Selection */}
         {selectedPlanId && (
           <div className="animate-in fade-in slide-in-from-top-4 duration-300 bg-slate-50/50 p-6 rounded-2xl border border-slate-200/60 space-y-4 shadow-sm">
-            <h5 className="font-bold text-slate-400 text-xs uppercase tracking-wider border-b border-slate-200/60 pb-2">
+            <h5 className="font-bold text-slate-600 text-sm uppercase tracking-wider border-b border-slate-200/60 pb-2">
               Lift Status
             </h5>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -491,22 +531,25 @@ const ServiceSelection = ({ onNext }) => {
                     key={status}
                     type="button"
                     onClick={() => setVehicleStatus(status)}
-                    className={`py-4 px-6 rounded-2xl border-2 transition-all duration-200 cursor-pointer flex flex-col items-center justify-center text-center ${
+                    className={`py-5 px-6 rounded-2xl border-2 transition-all duration-200 cursor-pointer flex flex-col items-center justify-center text-center ${
                       isActive
                         ? status === "NEW"
-                          ? "border-emerald-600 bg-emerald-50/60 text-emerald-800 scale-[1.01] ring-4 ring-emerald-600/5 shadow-xs"
-                          : "border-amber-500 bg-amber-50/60 text-amber-800 scale-[1.01] ring-4 ring-amber-500/5 shadow-xs"
-                        : "bg-white border-slate-200 text-slate-500 hover:border-slate-300 hover:bg-slate-50 hover:shadow-xs"
+                          ? "border-emerald-800 bg-emerald-700 text-white scale-[1.01] shadow-md"
+                          : "border-amber-800 bg-amber-700 text-white scale-[1.01] shadow-md"
+                        : "bg-white border-slate-300 text-slate-800 hover:border-slate-400 hover:shadow-xs"
                     }`}
                   >
-                    <span className="text-2xl mb-1.5">
-                      {status === "NEW" ? "✨" : "🛠️"}
-                    </span>
-                    <span className="text-sm font-semibold tracking-tight uppercase">
+                    <span className="text-xl font-bold tracking-tight uppercase">
                       {status === "NEW" ? "New Lift" : "Used Lift"}
                     </span>
-                    <span className="text-[10px] text-slate-400 font-medium mt-1 leading-normal">
-                      {status === "NEW" ? "Factory direct status" : "Requires BLP inspection"}
+                    <span
+                      className={`text-sm mt-1 leading-normal ${
+                        isActive ? "text-slate-200" : "text-slate-500"
+                      }`}
+                    >
+                      {status === "NEW"
+                        ? "Factory direct status"
+                        : "Requires BLP inspection"}
                     </span>
                   </button>
                 );
@@ -514,12 +557,12 @@ const ServiceSelection = ({ onNext }) => {
             </div>
             {vehicleStatus === "USED" && (
               <div className="flex items-start gap-3 p-4 bg-amber-50/80 border border-amber-200/70 rounded-xl text-sm shadow-inner animate-in slide-in-from-top-2">
-                <AlertTriangle className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
-                <div className="text-amber-800 text-xs leading-relaxed font-semibold">
-                  <strong>Used lift requires a 60-point inspection</strong>{" "}
-                  ($400 fee) before the contract can be submitted. You will
-                  confirm the inspection result on the next step. If it passes,
-                  a $400.00 credit will automatically apply!
+                <AlertTriangle className="w-5 h-5 text-amber-700 mt-0.5 flex-shrink-0" />
+                <div className="text-amber-950 text-sm leading-relaxed">
+                  This service contract is only available for lifts that have
+                  passed a 60-point pre-qualification inspection. You will
+                  confirm the inspection outcome on the next step before
+                  proceeding.
                 </div>
               </div>
             )}
@@ -529,7 +572,7 @@ const ServiceSelection = ({ onNext }) => {
         {/* Coverage options */}
         {selectedPlanId && (
           <div className="animate-in fade-in slide-in-from-top-4 duration-300 bg-slate-50/50 p-6 rounded-2xl border border-slate-200/60 space-y-6 shadow-sm">
-            <h5 className="font-bold text-slate-400 text-xs uppercase tracking-wider border-b border-slate-200/60 pb-2">
+            <h5 className="font-bold text-slate-600 text-sm uppercase tracking-wider border-b border-slate-200/60 pb-2">
               Coverage Options
             </h5>
 
@@ -568,7 +611,7 @@ const ServiceSelection = ({ onNext }) => {
         {(selectedPlanId === "service_contract" ||
           selectedPlanId === "maintenance") && (
           <div className="animate-in fade-in slide-in-from-top-4 duration-300 bg-slate-50/50 p-6 rounded-2xl border border-slate-200/60 space-y-6 shadow-sm">
-            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+            <div className="font-bold text-slate-600 text-sm uppercase tracking-wider border-b border-slate-200/60 pb-2">
               LIFT DETAILS
             </div>
 
@@ -583,7 +626,6 @@ const ServiceSelection = ({ onNext }) => {
                   }}
                   options={liftTypeOptions}
                   placeholder="-- Choose Lift Type --"
-                  icon={Anchor}
                   required
                 />
               </div>
@@ -595,14 +637,13 @@ const ServiceSelection = ({ onNext }) => {
                   onChange={setLiftCategoryIndex}
                   options={liftCategoryOptions}
                   placeholder="-- Choose Category --"
-                  icon={ShieldCheck}
                   disabled={!liftType}
                   required
                 />
               </div>
             </div>
 
-            <p className="text-xs text-slate-500 font-semibold mt-1">
+            <p className="text-sm text-slate-700 mt-1">
               Category determines the contract price based on lift weight
               capacity.
             </p>
@@ -610,47 +651,47 @@ const ServiceSelection = ({ onNext }) => {
             {/* Pricing Confirmed Banner Card */}
             {selectedCat && !isCustomQuote && (
               <div className="animate-in zoom-in-95 duration-200 bg-[#E3F9E9] border-2 border-[#A3E5B7] p-5 rounded-2xl shadow-sm space-y-4">
-                <div className="flex items-center gap-2 text-[#0A5C28] font-bold text-sm">
+                <div className="flex items-center gap-2 text-[#0A5C28] text-sm">
                   <CheckCircle2 className="w-4.5 h-4.5" />
                   Pricing confirmed — values auto-populated
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Contract Price white card */}
-                  <div className="bg-white border border-slate-100 rounded-xl p-4 flex flex-col justify-between shadow-xs">
+                  <div className="bg-white border border-slate-200 rounded-xl p-4 flex flex-col justify-between shadow-xs">
                     <div>
-                      <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block">
+                      <span className="text-xs font-bold text-slate-700 uppercase tracking-wider block">
                         CONTRACT PRICE
                       </span>
                       <span className="text-2xl font-extrabold text-slate-900 mt-1 block">
                         ${finalCalculatedPrice.toLocaleString()}
                       </span>
-                      <span className="text-[10px] text-slate-400 font-semibold block mt-0.5">
+                      <span className="text-xs text-slate-600 font-bold block mt-0.5">
                         charged to customer
                       </span>
                     </div>
                     <div className="mt-3">
-                      <span className="inline-block bg-brand-50 border border-brand-200 text-brand-700 font-mono text-[9px] font-bold px-2 py-0.5 rounded uppercase tracking-wider">
+                      <span className="inline-block bg-brand-50 border border-brand-200 text-brand-700 font-mono text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider">
                         RetailPrice → API
                       </span>
                     </div>
                   </div>
 
                   {/* Lift Value midpoint white card */}
-                  <div className="bg-white border border-slate-100 rounded-xl p-4 flex flex-col justify-between shadow-xs">
+                  <div className="bg-white border border-slate-200 rounded-xl p-4 flex flex-col justify-between shadow-xs">
                     <div>
-                      <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block">
+                      <span className="text-xs font-bold text-slate-700 uppercase tracking-wider block">
                         LIFT VALUE (MIDPOINT)
                       </span>
                       <span className="text-2xl font-extrabold text-slate-900 mt-1 block">
                         ${selectedCat.salePrice.toLocaleString()}
                       </span>
-                      <span className="text-[10px] text-slate-400 font-semibold block mt-0.5">
+                      <span className="text-xs text-slate-600 font-bold block mt-0.5">
                         estimated lift value
                       </span>
                     </div>
                     <div className="mt-3">
-                      <span className="inline-block bg-brand-50 border border-brand-200 text-brand-700 font-mono text-[9px] font-bold px-2 py-0.5 rounded uppercase tracking-wider">
+                      <span className="inline-block bg-brand-50 border border-brand-200 text-brand-700 font-mono text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider">
                         VehicleSalePrice → API
                       </span>
                     </div>
@@ -662,14 +703,14 @@ const ServiceSelection = ({ onNext }) => {
             {/* Custom Quote Box */}
             {isCustomQuote && (
               <div className="animate-in border-2 border-amber-200 bg-amber-50/50 p-5 rounded-2xl flex gap-4 items-start shadow-sm">
-                <div className="bg-amber-100 p-2.5 rounded-xl text-amber-600 shrink-0">
+                <div className="bg-amber-100 p-2.5 rounded-xl text-amber-700 shrink-0">
                   <AlertTriangle className="w-6 h-6" />
                 </div>
                 <div>
                   <h6 className="font-bold text-amber-900 text-[15px] mb-1">
                     Custom Quote Required
                   </h6>
-                  <p className="text-amber-700 text-xs leading-relaxed mb-3 font-semibold">
+                  <p className="text-amber-950 text-sm leading-relaxed mb-3 font-bold">
                     Elevator lifts exceeding 54,000 lb capacity are outside
                     standard automated rating scopes. Please record customer
                     details and contact support for manual processing.
@@ -694,7 +735,7 @@ const ServiceSelection = ({ onNext }) => {
           type="button"
           onClick={handleContinue}
           disabled={isContinueDisabled}
-          className={`rounded-xl px-6 py-3 text-xs sm:text-sm font-bold transition-all shadow-sm hover:shadow-md ${
+          className={`rounded-xl px-6 py-3 text-sm transition-all shadow-sm hover:shadow-md ${
             !isContinueDisabled
               ? "bg-[#2f4269] text-white hover:bg-brand-600 cursor-pointer"
               : "bg-slate-200 text-slate-400 cursor-not-allowed shadow-none"

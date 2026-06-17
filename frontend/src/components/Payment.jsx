@@ -1,3 +1,4 @@
+import { AlertTriangle } from "lucide-react";
 import React, { useState, useEffect, useRef } from "react";
 import { useFlow } from "../context/FlowContext";
 import { apiClient } from "../context/AuthContext";
@@ -9,7 +10,7 @@ import {
   useElements,
 } from "@stripe/react-stripe-js";
 
-// Make sure to call loadStripe outside of a component’s render to avoid
+// Make sure to call loadStripe outside of a componentâ€™s render to avoid
 // recreating the Stripe object on every render.
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUB_KEY);
 
@@ -115,18 +116,15 @@ const Payment = ({ onNext, onBack }) => {
             </span>
             <span className="text-5xl font-extrabold tracking-tight text-[#0b1a30]">
               $
-              {(
-                servicePlan?.price -
-                (servicePlan?.vehicleStatus === "USED" ? 400 : 0)
-              )?.toLocaleString()}
+              {servicePlan?.price?.toLocaleString()}
             </span>
             <div className="mt-4 flex flex-col items-center gap-2">
               <span className="text-xs text-[#2f4269] font-bold bg-white border border-[#D0E2FF] px-4 py-1.5 rounded-xl inline-block shadow-sm">
                 {servicePlan?.name} Base Plan
               </span>
-              {servicePlan?.vehicleStatus === "USED" && (
-                <span className="text-xs text-[#0A5C28] font-bold bg-[#E3F9E9] border border-[#A3E5B7] px-4 py-1.5 rounded-xl inline-block shadow-sm">
-                  Includes -$400.00 Used Lift Inspection Credit
+              {servicePlan?.taxAmount > 0 && (
+                <span className="text-xs text-emerald-800 font-bold bg-[#E3F9E9] border border-[#A3E5B7] px-4 py-1.5 rounded-xl inline-block shadow-sm animate-in fade-in duration-200">
+                  Includes 7% Florida Sales Tax (+${servicePlan.taxAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })})
                 </span>
               )}
             </div>
@@ -135,7 +133,7 @@ const Payment = ({ onNext, onBack }) => {
 
         {errorMsg && (
           <div className="p-4 bg-red-50 text-red-700 rounded-xl border border-red-200 text-sm font-semibold flex items-center justify-center gap-2">
-            <span className="text-lg">⚠</span> {errorMsg}
+            <span className="text-lg">âš </span> {errorMsg}
           </div>
         )}
 
@@ -179,7 +177,7 @@ const Payment = ({ onNext, onBack }) => {
           type="button"
           onClick={onBack}
           disabled={!clientSecret && !errorMsg}
-          className="border border-slate-200 text-slate-600 hover:bg-slate-100/60 bg-white rounded-xl px-6 py-3 text-xs sm:text-sm transition-all font-bold shadow-sm disabled:opacity-50"
+          className="border border-slate-200 text-slate-600 hover:bg-slate-100/60 bg-white rounded-xl px-6 py-3 text-xs sm:text-sm transition-all shadow-sm disabled:opacity-50"
         >
           Go Back
         </button>

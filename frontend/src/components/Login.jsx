@@ -1,6 +1,6 @@
-import React, { useState } from "react";
+﻿import React, { useState } from "react";
 import { useAuth } from "../context/AuthContext";
-import { Lock, User, Eye, EyeOff, Shield, Waves } from "lucide-react";
+import { Lock, User, Eye, EyeOff, Shield, Waves, AlertTriangle } from "lucide-react";
 
 const Login = ({ onSuccess }) => {
   const [username, setUsername] = useState("");
@@ -43,14 +43,14 @@ const Login = ({ onSuccess }) => {
         <h3 className="text-2xl font-bold mb-1.5 text-slate-900 tracking-tight">
           Welcome back
         </h3>
-        <p className="text-sm font-medium text-slate-500">
+        <p className="text-sm font-bold text-slate-600">
           Sign in to your technician portal
         </p>
       </div>
 
       {error && (
-        <div className="mb-6 flex items-start gap-3 px-4 py-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl">
-          <span className="mt-0.5 shrink-0">⚠</span>
+        <div className="mb-6 flex items-start gap-3 px-4 py-3 bg-red-50 border border-red-200 text-red-750 text-sm rounded-xl font-semibold">
+          <AlertTriangle className="w-4.5 h-4.5 text-red-600 mt-0.5 shrink-0" />
           <span>{error}</span>
         </div>
       )}
@@ -66,12 +66,12 @@ const Login = ({ onSuccess }) => {
           </label>
           <div className="relative">
             <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
-              <User className="w-4 h-4 text-slate-400" />
+              <User className="w-4 h-4 text-slate-500" />
             </div>
             <input
               id="login-username"
               type="text"
-              className="block w-full pl-11 pr-4 py-3.5 bg-slate-100 border border-transparent rounded-full text-sm placeholder-slate-400 focus:outline-none focus:ring-0 focus:border-brand-500 focus:bg-white transition-all text-slate-800 font-medium"
+              className="block w-full pl-11 pr-4 py-3.5 bg-slate-100 border border-transparent rounded-full text-sm placeholder-slate-500 focus:outline-none focus:ring-0 focus:border-brand-500 focus:bg-white transition-all text-slate-900 font-semibold"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               placeholder="demo_vendor"
@@ -91,12 +91,12 @@ const Login = ({ onSuccess }) => {
           </label>
           <div className="relative">
             <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
-              <Lock className="w-4 h-4 text-slate-400" />
+              <Lock className="w-4 h-4 text-slate-500" />
             </div>
             <input
               id="login-password"
               type={showPassword ? "text" : "password"}
-              className="block w-full pl-11 pr-12 py-3.5 bg-slate-100 border border-transparent rounded-full text-sm placeholder-slate-400 focus:outline-none focus:ring-0 focus:border-brand-500 focus:bg-white transition-all text-slate-800 font-medium"
+              className="block w-full pl-11 pr-12 py-3.5 bg-slate-100 border border-transparent rounded-full text-sm placeholder-slate-500 focus:outline-none focus:ring-0 focus:border-brand-500 focus:bg-white transition-all text-slate-900 font-semibold"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
@@ -106,7 +106,7 @@ const Login = ({ onSuccess }) => {
             <button
               type="button"
               onClick={() => setShowPassword((v) => !v)}
-              className="absolute inset-y-0 right-0 flex items-center pr-4 text-slate-400 hover:text-slate-600 transition-colors"
+              className="absolute inset-y-0 right-0 flex items-center pr-4 text-slate-500 hover:text-slate-700 transition-colors"
               tabIndex={-1}
               aria-label={showPassword ? "Hide password" : "Show password"}
             >
@@ -123,9 +123,9 @@ const Login = ({ onSuccess }) => {
           id="login-submit"
           type="submit"
           disabled={loading}
-          className={`w-full mt-8 rounded-full border border-brand-500 px-8 py-3.5 text-sm transition-all ${
+          className={`w-full mt-8 rounded-full border border-brand-500 px-8 py-3.5 text-sm font-bold transition-all ${
             loading
-              ? "bg-slate-300 border-transparent text-slate-100 cursor-not-allowed"
+              ? "bg-slate-300 border-transparent text-slate-500 cursor-not-allowed"
               : "bg-brand-500 text-white hover:bg-brand-600 shadow-sm"
           }`}
         >
@@ -158,8 +158,8 @@ const Login = ({ onSuccess }) => {
         </button>
       </form>
 
-      <div className="mt-8 pt-6 border-t border-slate-100 flex items-center justify-center gap-2 text-[10px] font-semibold text-slate-400">
-        <Waves className="w-3.5 h-3.5 text-slate-300" />
+      <div className="mt-8 pt-6 border-t border-slate-200 flex items-center justify-center gap-2 text-[10px] font-bold text-slate-500">
+        <Waves className="w-3.5 h-3.5 text-slate-400" />
         <span>Boat Lift Protection - Field Portal</span>
       </div>
     </div>

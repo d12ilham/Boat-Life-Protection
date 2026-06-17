@@ -73,6 +73,7 @@ const US_STATES = [
 const CustomerForm = ({ onNext, onBack }) => {
   const {
     servicePlan,
+    setServicePlan,
     customer,
     setCustomer,
     technicianName,
@@ -147,6 +148,24 @@ const CustomerForm = ({ onNext, onBack }) => {
     setErrorMsg("");
 
     try {
+      // Calculate 7% Florida sales tax if state is FL
+      const isFL = formData.state === "FL";
+      const basePrice =
+        servicePlan.price === "Custom Quote"
+          ? 0
+          : parseFloat(servicePlan.price || 0);
+      const taxAmount = isFL ? basePrice * 0.07 : 0;
+      const finalPriceWithTax = Math.round((basePrice + taxAmount) * 100) / 100;
+
+      // Update flow context for subsequent steps (Payment, Review)
+      const updatedPlan = {
+        ...servicePlan,
+        price: finalPriceWithTax,
+        retailPrice: finalPriceWithTax,
+        taxAmount: taxAmount,
+      };
+      setServicePlan(updatedPlan);
+
       // 1. Save customer + contract locally
       const response = await apiClient.post("/customer-init", {
         technician_id: user?.id,
@@ -166,10 +185,7 @@ const CustomerForm = ({ onNext, onBack }) => {
         },
         contract: {
           service_plan: servicePlan.name,
-          amount:
-            servicePlan.price === "Custom Quote"
-              ? 0
-              : servicePlan.price - (isUsed ? 400 : 0),
+          amount: finalPriceWithTax,
           serial_number: formData.serial_number,
           year: formData.year ? parseInt(formData.year) : null,
           make: formData.make,
@@ -184,10 +200,7 @@ const CustomerForm = ({ onNext, onBack }) => {
           vehicle_sale_price: servicePlan.vehicleSalePrice
             ? parseFloat(servicePlan.vehicleSalePrice)
             : 0.0,
-          retail_price:
-            servicePlan.price === "Custom Quote"
-              ? 0
-              : parseFloat(servicePlan.price || 0),
+          retail_price: finalPriceWithTax,
           vehicle_status: servicePlan.vehicleStatus || "NEW",
         },
       });
@@ -207,10 +220,6 @@ const CustomerForm = ({ onNext, onBack }) => {
             servicePlan.id === "maintenance"
               ? parseFloat(servicePlan.vehicleSalePrice || 0)
               : parseFloat(servicePlan.vehicleSalePrice || 0);
-          const retailPrice =
-            servicePlan.id === "maintenance"
-              ? 3000.0
-              : parseFloat(servicePlan.retailPrice || 0);
 
           const galtResponse = await apiClient.post("/galt/submit", {
             contractId: response.data.contract_id,
@@ -247,7 +256,7 @@ const CustomerForm = ({ onNext, onBack }) => {
             ProductType: servicePlan.id,
             Coverage: servicePlan.coverage,
             ContractType: servicePlan.contractType || null,
-            RetailPrice: retailPrice,
+            RetailPrice: finalPriceWithTax,
           });
 
           const galtData = galtResponse.data;
@@ -276,7 +285,7 @@ const CustomerForm = ({ onNext, onBack }) => {
             "[GALT] Error submitting to GALT /galt/submit:",
             galtErr,
           );
-          // Non-fatal — we still proceed to contract review with legacy mock
+          // Non-fatal â€” we still proceed to contract review with legacy mock
         }
       }
 
@@ -299,7 +308,7 @@ const CustomerForm = ({ onNext, onBack }) => {
     <div className="animate-in fade-in duration-300">
       <form onSubmit={handleSubmit} className="flex flex-col">
         {/* Scrollable Content Body */}
-        <div className="p-6 sm:p-10 space-y-8 ">
+        <div className="p-3 md:p-5 lg:p-10 space-y-8">
           {errorMsg && (
             <div className="p-4 bg-red-50 text-red-700 rounded-xl border border-red-200 text-sm font-semibold flex items-center gap-3">
               <span className="text-lg">⚠</span> {errorMsg}
@@ -317,11 +326,10 @@ const CustomerForm = ({ onNext, onBack }) => {
                   <h4 className="font-bold text-amber-900 text-sm">
                     60-Point Inspection Required — Used Lift
                   </h4>
-                  <p className="text-amber-700 text-xs mt-0.5 font-semibold">
-                    A $400 inspection fee applies. If the lift passes, the $400
-                    is applied toward the contract price. If it fails,
-                    remediation work is required before the contract can be
-                    issued.
+                  <p className="text-amber-700 text-xs mt-0.5">
+                    A 60-point pre-qualification inspection is required. If it
+                    fails, remediation work is required before the contract can
+                    be issued.
                   </p>
                 </div>
               </div>
@@ -330,7 +338,7 @@ const CustomerForm = ({ onNext, onBack }) => {
                 <p className="text-xs sm:text-sm font-bold text-slate-700">
                   Confirm inspection result to unlock contract submission:
                 </p>
-                <div className="flex gap-4">
+                <div className="flex flex-col md:flex-row gap-4">
                   <button
                     type="button"
                     onClick={() => handleInspectionSet("PASS")}
@@ -358,10 +366,9 @@ const CustomerForm = ({ onNext, onBack }) => {
                 </div>
 
                 {inspectionResult === "PASS" && (
-                  <div className="mt-3 flex items-center gap-2 text-[#0A5C28] text-xs font-semibold bg-[#E3F9E9] border border-[#A3E5B7] px-4 py-2.5 rounded-lg shadow-xs">
+                  <div className="mt-3 flex items-center gap-2 text-[#0A5C28] text-xs bg-[#E3F9E9] border border-[#A3E5B7] px-4 py-2.5 rounded-lg shadow-xs">
                     <CheckCircle2 className="w-4 h-4" />
-                    Inspection confirmed passed. The $400 fee will be applied
-                    toward the contract. Submission unlocked.
+                    Inspection confirmed passed. Submission unlocked.
                   </div>
                 )}
                 {inspectionResult === "FAIL" && (
@@ -369,7 +376,7 @@ const CustomerForm = ({ onNext, onBack }) => {
                     <p className="font-bold text-red-800 mb-1">
                       Lift failed inspection
                     </p>
-                    <p className="text-red-700">
+                    <p className="text-red-700 font-normal text-xs">
                       The customer may opt for service/remediation work
                       (additional charge). Once BLP signs off on completion,
                       return to this screen, mark as PASSED, and proceed with
@@ -409,7 +416,7 @@ const CustomerForm = ({ onNext, onBack }) => {
                   />
                 </div>
               </div>
-              <p className="text-xs text-slate-500 font-semibold leading-relaxed">
+              <p className="text-xs text-slate-500 leading-relaxed">
                 Please enter your full name since this is a shared shop portal
                 login. This will be stamped on the official contract submission.
               </p>
@@ -490,7 +497,7 @@ const CustomerForm = ({ onNext, onBack }) => {
 
               <div>
                 <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
-                  Email Address
+                  Email Address <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
@@ -499,6 +506,7 @@ const CustomerForm = ({ onNext, onBack }) => {
                   <input
                     type="email"
                     name="email"
+                    required
                     className="input-field pl-11"
                     placeholder="john@example.com"
                     value={formData.email}
@@ -752,12 +760,12 @@ const CustomerForm = ({ onNext, onBack }) => {
         {/* Footer Navigation Bar */}
         <div className="p-6 bg-slate-50 border-t border-slate-200/80 flex flex-col sm:flex-row items-center justify-between gap-4 rounded-b-[22px]">
           {submitBlocked ? (
-            <div className="flex items-center gap-2 text-amber-700 text-xs font-semibold bg-amber-50 border border-amber-200 px-4 py-2 rounded-xl shadow-xs">
+            <div className="flex items-center gap-2 text-amber-700 text-xs bg-amber-50 border border-amber-200 px-4 py-2 rounded-xl shadow-xs">
               <AlertTriangle className="w-4 h-4 shrink-0" />
               Confirm 60-point inspection above to unlock submission.
             </div>
           ) : (
-            <div className="text-xs text-slate-400 font-semibold leading-relaxed">
+            <div className="text-xs text-slate-400 leading-relaxed">
               Confirm all details. Continuing will generate the official digital
               GALT contract.
             </div>
@@ -771,7 +779,7 @@ const CustomerForm = ({ onNext, onBack }) => {
                 setTechnicianName(techName);
                 onBack();
               }}
-              className="border border-slate-200 text-slate-600 hover:bg-slate-100/60 bg-white rounded-xl px-6 py-3 text-xs sm:text-sm transition-all font-bold shadow-sm"
+              className="border border-slate-200 text-slate-600 hover:bg-slate-100/60 bg-white rounded-xl px-6 py-3 text-xs sm:text-sm transition-all shadow-sm"
             >
               Go back
             </button>
@@ -779,7 +787,7 @@ const CustomerForm = ({ onNext, onBack }) => {
             <button
               type="submit"
               disabled={loading || submitBlocked}
-              className={`rounded-xl px-6 py-3 text-xs sm:text-sm font-bold transition-all shadow-sm hover:shadow-md ${
+              className={`rounded-xl px-6 py-3 text-xs sm:text-sm transition-all shadow-sm hover:shadow-md ${
                 !loading && !submitBlocked
                   ? "bg-[#2f4269] text-white hover:bg-brand-600 cursor-pointer"
                   : "bg-slate-200 text-slate-400 cursor-not-allowed shadow-none"

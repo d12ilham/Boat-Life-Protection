@@ -1,7 +1,12 @@
-import React, { useState, useEffect, useRef } from "react";
+﻿import React, { useState, useEffect, useRef } from "react";
 import { useFlow } from "../context/FlowContext";
 import { useAuth, apiClient } from "../context/AuthContext";
-import { CheckCircle2, FileText, ShieldCheck, AlertTriangle } from "lucide-react";
+import {
+  CheckCircle2,
+  FileText,
+  ShieldCheck,
+  AlertTriangle,
+} from "lucide-react";
 
 const ContractReview = ({ onNext, onBack }) => {
   const {
@@ -23,7 +28,7 @@ const ContractReview = ({ onNext, onBack }) => {
   const [accepted, setAccepted] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
-  // ── Multi-page PDF state ──────────────────────────────────────────────────
+  // â”€â”€ Multi-page PDF state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const [pages, setPages] = useState([]);
   const [pdfLoading, setPdfLoading] = useState(false);
   const [pdfError, setPdfError] = useState(false);
@@ -93,20 +98,25 @@ const ContractReview = ({ onNext, onBack }) => {
       canvas.height = viewport.height;
       canvas.width = viewport.width;
       const ctx = canvas.getContext("2d");
-      
+
       const renderTask = page.render({ canvasContext: ctx, viewport });
-      
+
       renderTask.promise.then(() => {
-        if (accepted && signatureName && galtSignatures && galtSignatures.length > 0) {
+        if (
+          accepted &&
+          signatureName &&
+          galtSignatures &&
+          galtSignatures.length > 0
+        ) {
           const pageNum = i + 1;
           const pageHeight = viewport.viewBox[3]; // PDF page height in points
           const scale = viewport.scale;
-          
-          galtSignatures.forEach(sig => {
+
+          galtSignatures.forEach((sig) => {
             const { Type, Left, Right, Bottom, Top, Pages } = sig;
-            const hasPage = Pages.some(p => p.Page === pageNum);
+            const hasPage = Pages.some((p) => p.Page === pageNum);
             if (!hasPage) return;
-            
+
             let text = "";
             let isCursive = false;
             if (Type === "CustomerSignature") {
@@ -118,22 +128,22 @@ const ContractReview = ({ onNext, onBack }) => {
             } else if (Type === "CustomerDate") {
               text = new Date().toLocaleDateString("en-US");
             }
-            
+
             if (!text) return;
-            
+
             // Navy ink for signing
             ctx.fillStyle = "rgba(0, 30, 110, 0.9)";
-            
+
             if (isCursive) {
               ctx.font = `italic bold ${Math.min(28, (Top - Bottom) * scale * 0.75)}px "Caveat", "Brush Script MT", cursive, serif`;
             } else {
               ctx.font = `bold ${Math.min(24, (Top - Bottom) * scale * 0.65)}px "Courier New", Courier, monospace`;
             }
-            
+
             // Translate PDF bottom-left origin to HTML top-left canvas origin
             const x = (Left + 4) * scale;
             const y = (pageHeight - Bottom - 4) * scale;
-            
+
             ctx.fillText(text, x, y);
           });
         }
@@ -141,7 +151,7 @@ const ContractReview = ({ onNext, onBack }) => {
     });
   }, [pages, accepted, signatureName, galtSignatures]);
 
-  // ── Signature handler ─────────────────────────────────────────────────────
+  // â”€â”€ Signature handler â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const handleSign = async () => {
     const trimmedSignature = signatureName.trim();
     if (!accepted || !trimmedSignature) return;
@@ -156,7 +166,9 @@ const ContractReview = ({ onNext, onBack }) => {
       onNext();
     } catch (err) {
       console.error(err);
-      setErrorMsg(err.response?.data?.message || "Error digitally signing the contract.");
+      setErrorMsg(
+        err.response?.data?.message || "Error digitally signing the contract.",
+      );
     } finally {
       setLoading(false);
     }
@@ -165,14 +177,14 @@ const ContractReview = ({ onNext, onBack }) => {
   return (
     <div className="animate-in fade-in duration-300 flex flex-col">
       {/* Scrollable Content Body */}
-      <div className="p-6 sm:p-10 space-y-8 ">
+      <div className="p-3 md:p-5 lg:p-10 space-y-8">
         {errorMsg && (
           <div className="p-4 bg-red-50 text-red-700 rounded-xl border border-red-200 text-sm font-semibold flex items-center gap-3">
-            <span className="text-lg">⚠</span> {errorMsg}
+            <span className="text-lg">âš </span> {errorMsg}
           </div>
         )}
 
-        {/* ── GALT PDF Viewer ── */}
+        {/* â”€â”€ GALT PDF Viewer â”€â”€ */}
         {galtPdf ? (
           <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm space-y-4">
             <h4 className="text-sm font-bold text-slate-700 flex items-center gap-2 border-b border-slate-100 pb-3 uppercase tracking-wide">
@@ -188,11 +200,28 @@ const ContractReview = ({ onNext, onBack }) => {
             {/* Loading spinner */}
             {pdfLoading && (
               <div className="flex flex-col items-center justify-center p-20 gap-4 bg-slate-50 rounded-xl">
-                <svg className="animate-spin h-8 w-8 text-[#2f4269]" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                <svg
+                  className="animate-spin h-8 w-8 text-[#2f4269]"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  />
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                  />
                 </svg>
-                <p className="text-sm text-slate-500 font-semibold">Loading contract document…</p>
+                <p className="text-sm text-slate-500 font-semibold">
+                  Loading contract documentâ€¦
+                </p>
               </div>
             )}
 
@@ -223,22 +252,27 @@ const ContractReview = ({ onNext, onBack }) => {
             )}
           </div>
         ) : (
-          /* ── RED ERROR ALERT CARD (shown when no GALT PDF is available) ── */
+          /* â”€â”€ RED ERROR ALERT CARD (shown when no GALT PDF is available) â”€â”€ */
           <div className="bg-red-50 border-2 border-red-200 rounded-2xl p-6 sm:p-8 text-center shadow-sm flex flex-col items-center gap-4">
             <div className="bg-red-100 p-4 rounded-full text-red-600 shadow-sm shrink-0">
               <AlertTriangle className="w-8 h-8" />
             </div>
-            <h4 className="font-bold text-red-900 text-lg">Official GALT Contract Document Missing</h4>
+            <h4 className="font-bold text-red-900 text-lg">
+              Official GALT Contract Document Missing
+            </h4>
             <p className="text-red-700 text-xs sm:text-sm font-semibold max-w-lg leading-relaxed">
-              We did not receive the official contract PDF from the GALT API. Signing is disabled. 
-              Please go back to "Customer Details" to verify information and re-submit.
+              We did not receive the official contract PDF from the GALT API.
+              Signing is disabled. Please go back to "Customer Details" to
+              verify information and re-submit.
             </p>
           </div>
         )}
 
-        {/* ── Signature Section ── */}
-        <div className="space-y-6 max-w-2xl mx-auto md:max-w-none md:w-3/4">
-          <label className={`flex items-start gap-4 p-5 border-2 border-slate-200 rounded-xl bg-white shadow-sm cursor-pointer hover:border-brand-300 transition-all duration-200 has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50/30 group ${!galtPdf ? "opacity-50 cursor-not-allowed pointer-events-none" : ""}`}>
+        {/* â”€â”€ Signature Section â”€â”€ */}
+        <div className="space-y-6 max-w-2xl mx-auto md:max-w-none lg:w-3/4">
+          <label
+            className={`flex items-start gap-4 p-5 border-2 border-slate-200 rounded-xl bg-white shadow-sm cursor-pointer hover:border-brand-300 transition-all duration-200 has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50/30 group ${!galtPdf ? "opacity-50 cursor-not-allowed pointer-events-none" : ""}`}
+          >
             <input
               type="checkbox"
               className="mt-0.5 md:mt-1 h-5 w-5 text-[#2f4269] focus:ring-[#2f4269] border-slate-300 rounded cursor-pointer transition-colors"
@@ -252,10 +286,14 @@ const ContractReview = ({ onNext, onBack }) => {
           </label>
 
           <div>
-            <label className={`block text-base font-semibold text-slate-700 mb-2 ${!galtPdf ? "opacity-50" : ""}`}>Type Full Name for Digital Signature</label>
+            <label
+              className={`block text-base font-semibold text-slate-700 mb-2 ${!galtPdf ? "opacity-50" : ""}`}
+            >
+              Type Full Name for Digital Signature
+            </label>
             <input
               type="text"
-              className="input-field text-lg py-4 placeholder-slate-300 shadow-inner disabled:bg-slate-100 disabled:cursor-not-allowed"
+              className="input-field text-lg py-2 lg:py-4 placeholder-slate-300 shadow-inner disabled:bg-slate-100 disabled:cursor-not-allowed"
               value={signatureName}
               onChange={(e) => setSignatureName(e.target.value)}
               placeholder="e.g. John Doe"
@@ -273,7 +311,7 @@ const ContractReview = ({ onNext, onBack }) => {
             setSignature(signatureName);
             onBack();
           }}
-          className="border border-slate-200 text-slate-600 hover:bg-slate-100/60 bg-white rounded-xl px-6 py-3 text-xs sm:text-sm transition-all font-bold shadow-sm"
+          className="border border-slate-200 text-slate-600 hover:bg-slate-100/60 bg-white rounded-xl px-6 py-3 text-xs sm:text-sm transition-all shadow-sm"
         >
           Review Details
         </button>
@@ -282,7 +320,7 @@ const ContractReview = ({ onNext, onBack }) => {
           type="button"
           onClick={handleSign}
           disabled={!accepted || !signatureName.trim() || loading || !galtPdf}
-          className={`rounded-xl px-6 py-3 text-xs sm:text-sm font-bold transition-all shadow-sm hover:shadow-md ${
+          className={`rounded-xl px-6 py-3 text-xs sm:text-sm transition-all shadow-sm hover:shadow-md ${
             accepted && signatureName.trim() && !loading && galtPdf
               ? "bg-[#2f4269] text-white hover:bg-brand-600 cursor-pointer"
               : "bg-slate-200 text-slate-400 cursor-not-allowed shadow-none"
@@ -290,9 +328,24 @@ const ContractReview = ({ onNext, onBack }) => {
         >
           {loading ? (
             <span className="flex items-center gap-2">
-              <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+              <svg
+                className="animate-spin h-4 w-4 text-white"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                />
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                />
               </svg>
               Signing contract...
             </span>
