@@ -124,7 +124,9 @@ const Payment = ({ onNext, onBack }) => {
               </span>
               {servicePlan?.taxAmount > 0 && (
                 <span className="text-xs text-emerald-800 font-bold bg-[#E3F9E9] border border-[#A3E5B7] px-4 py-1.5 rounded-xl inline-block shadow-sm animate-in fade-in duration-200">
-                  Includes 7% Florida Sales Tax (+${servicePlan.taxAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })})
+                  {servicePlan.taxCounty
+                    ? `Includes ${(servicePlan.taxRate * 100).toFixed(1)}% Florida Sales Tax — ${servicePlan.taxCounty} (+$${servicePlan.taxAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })})`
+                    : `Includes Florida Sales Tax (+$${servicePlan.taxAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })})`}
                 </span>
               )}
             </div>

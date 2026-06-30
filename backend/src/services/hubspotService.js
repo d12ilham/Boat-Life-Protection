@@ -1,12 +1,14 @@
-/**
+﻿/**
  * hubspotService.js
  *
  * Sends customer & contract data to HubSpot CRM after a successful payment.
  *
  * Fields synced:
- *  Contact : firstname, lastname, email, phone, address, city, state, zip
- *  Deal    : dealname, amount, closedate, dealstage, description
- *            (description contains: product purchased, lift type, date of sale)
+ *  Contact : firstname, lastname, email, phone, address, city, state, zip,
+ *            lifecyclestage
+ *  Deal    : dealname, amount, closedate, dealstage, pipeline, dealtype,
+ *            hubspot_owner_id (optional env)
+ *            + BLP custom properties (blp_*) per BLP_HubSpot_Integration_Brief
  */
 
 import fetch from "node-fetch";
@@ -81,12 +83,25 @@ async function updateContact(contactId, properties) {
 }
 
 async function createDeal(contactId, dealProperties) {
-  // 1. Create the deal
+  // Create the deal and associate it with the contact in one API call
+  // (per brief Section 4 -- include associations block at deal creation time)
   const createUrl = `${HUBSPOT_BASE}/crm/v3/objects/deals`;
+  const payload = {
+    properties: dealProperties,
+    associations: [
+      {
+        to: { id: contactId },
+        types: [
+          { associationCategory: "HUBSPOT_DEFINED", associationTypeId: 3 },
+        ],
+      },
+    ],
+  };
+
   const createRes = await fetch(createUrl, {
     method: "POST",
     headers: authHeader(),
-    body: JSON.stringify({ properties: dealProperties }),
+    body: JSON.stringify(payload),
   });
 
   if (!createRes.ok) {
@@ -97,33 +112,63 @@ async function createDeal(contactId, dealProperties) {
   }
 
   const deal = await createRes.json();
-  const dealId = deal.id;
+  return deal.id;
+}
 
-  // 2. Associate the deal with the contact
-  const assocUrl = `${HUBSPOT_BASE}/crm/v4/objects/deals/${dealId}/associations/contacts/${contactId}`;
-  const assocRes = await fetch(assocUrl, {
-    method: "PUT",
-    headers: authHeader(),
-    body: JSON.stringify([
-      { associationCategory: "HUBSPOT_DEFINED", associationTypeId: 3 },
-    ]),
-  });
+/**
+ * Derive blp_product_id (102 = PMP/Maintenance, 103 = ESC/Service Contract)
+ * from service_plan name.
+ */
+function deriveProductId(servicePlan) {
+  if (!servicePlan) return null;
+  const lower = String(servicePlan).toLowerCase();
+  if (lower.includes("pmp") || lower.includes("maintenance")) return "102";
+  if (lower.includes("esc") || lower.includes("service contract")) return "103";
+  return null;
+}
 
-  if (!assocRes.ok) {
-    const text = await assocRes.text();
-    console.warn(
-      `[HubSpot] Deal-Contact association failed (${assocRes.status}): ${text}`
-    );
+/**
+ * Derive blp_coverage_level (Gold / Platinum) from service_plan or lift_category.
+ * Only applicable for ESC plans.
+ */
+function deriveCoverageLevel(servicePlan, liftCategory) {
+  const text = `${servicePlan || ""} ${liftCategory || ""}`.toLowerCase();
+  if (text.includes("platinum")) return "Platinum";
+  if (text.includes("gold")) return "Gold";
+  return null;
+}
+
+/**
+ * Derive blp_motor_count (1, 2, or 4) from service_plan or lift_category.
+ * Only applicable for PMP plans.
+ */
+function deriveMotorCount(servicePlan, liftCategory) {
+  const text = `${servicePlan || ""} ${liftCategory || ""}`.toLowerCase();
+  if (text.includes("4 motor") || text.includes("4-motor")) return "4";
+  if (text.includes("2 motor") || text.includes("2-motor")) return "2";
+  if (text.includes("1 motor") || text.includes("1-motor")) return "1";
+  return null;
+}
+
+/**
+ * Calculate a renewal alert date (30 days before contract end date).
+ */
+function deriveRenewalAlertDate(contractEndDate) {
+  if (!contractEndDate) return null;
+  try {
+    const end = new Date(contractEndDate);
+    end.setDate(end.getDate() - 30);
+    return end.toISOString().split("T")[0];
+  } catch {
+    return null;
   }
-
-  return dealId;
 }
 
 /**
  * Main entry point called by integrationService.js
  */
 export async function syncToHubSpot(customer, contract) {
-  // ── Contact upsert ──────────────────────────────────────────────────────
+  // -- Contact upsert ──────────────────────────────────────────────────────
   const contactProperties = {
     email: customer.email,
     firstname:
@@ -137,6 +182,7 @@ export async function syncToHubSpot(customer, contract) {
     city: customer.city || "",
     state: customer.state || "",
     zip: customer.zip_code || "",
+    lifecyclestage: "customer",
   };
 
   let contactId = await findContactByEmail(customer.email);
@@ -150,32 +196,82 @@ export async function syncToHubSpot(customer, contract) {
     contactId = await createContact(contactProperties);
   }
 
-  // ── Deal creation ────────────────────────────────────────────────────────
-  const closedate = contract.date_of_sale
+  // -- Deal creation ────────────────────────────────────────────────────────
+  const saleDate = contract.date_of_sale
     ? new Date(contract.date_of_sale).toISOString().split("T")[0]
     : new Date().toISOString().split("T")[0];
 
-  // Embed lift_type & product info into the standard `description` field
-  // (avoids needing crm.schemas.deals.write scope for custom properties)
-  const description =
-    `Product Purchased: ${contract.service_plan || "N/A"}\n` +
-    `Lift Type: ${contract.lift_type || "N/A"}\n` +
-    `Date of Sale: ${closedate}\n` +
-    `Amount: $${contract.amount || 0}`;
+  // ISO 8601 format with time component as required by brief Section 3.1
+  const closedateISO = `${saleDate}T00:00:00Z`;
+
+  // Deal name format per brief: [Plan Type] - [Customer Full Name] - [YYYY-MM-DD]
+  const customerFullName =
+    [
+      customer.first_name || (customer.name || "").split(" ")[0] || "",
+      customer.last_name ||
+        (customer.name || "").split(" ").slice(1).join(" ") ||
+        "",
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .trim() || customer.email;
+
+  const dealName = `${contract.service_plan || "BLP Plan"} - ${customerFullName} - ${saleDate}`;
+
+  const productId = deriveProductId(contract.service_plan);
+  const coverageLevel = deriveCoverageLevel(
+    contract.service_plan,
+    contract.lift_category
+  );
+  const motorCount = deriveMotorCount(
+    contract.service_plan,
+    contract.lift_category
+  );
+  const renewalAlertDate = deriveRenewalAlertDate(contract.contract_end_date);
 
   const dealProperties = {
-    dealname: `${customer.first_name || customer.name} - ${contract.service_plan}`,
+    dealname: dealName,
     amount: String(contract.amount || 0),
-    closedate: closedate,
+    closedate: closedateISO,
     dealstage: "closedwon",
-    pipeline: "default",
-    description: description,
+    pipeline: process.env.HUBSPOT_PIPELINE_ID || "default",
+    dealtype: "newbusiness",
+    ...(process.env.HUBSPOT_OWNER_ID
+      ? { hubspot_owner_id: process.env.HUBSPOT_OWNER_ID }
+      : {}),
+
+    // Custom BLP Deal Properties (must be created in HubSpot first)
+    blp_plan_type: contract.service_plan || "",
+    ...(productId ? { blp_product_id: productId } : {}),
+    ...(coverageLevel ? { blp_coverage_level: coverageLevel } : {}),
+    ...(motorCount ? { blp_motor_count: motorCount } : {}),
+    blp_lift_type: contract.lift_type || "",
+    blp_lift_weight_range: contract.lift_category || "",
+    blp_vehicle_status: contract.vehicle_status || "NEW",
+
+    blp_contract_start_date: saleDate,
+    ...(contract.contract_end_date
+      ? {
+          blp_contract_end_date: new Date(contract.contract_end_date)
+            .toISOString()
+            .split("T")[0],
+        }
+      : {}),
+    ...(renewalAlertDate ? { blp_renewal_alert_date: renewalAlertDate } : {}),
+
+    ...(contract.stripe_payment_id
+      ? { blp_stripe_payment_id: contract.stripe_payment_id }
+      : {}),
+    blp_technician_name: contract.technician_name || "",
+    ...(contract.galt_contract_no
+      ? { blp_galt_contract_id: contract.galt_contract_no }
+      : {}),
   };
 
   console.log("[HubSpot] Creating deal:", dealProperties.dealname);
   const dealId = await createDeal(contactId, dealProperties);
   console.log(
-    `[HubSpot] ✅ Deal ${dealId} created and linked to contact ${contactId}`
+    `[HubSpot] Deal ${dealId} created and linked to contact ${contactId}`
   );
 
   return { contactId, dealId };

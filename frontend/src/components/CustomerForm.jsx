@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { getFloridaTaxInfo } from "../utils/floridaTaxRates";
 import { useFlow } from "../context/FlowContext";
 import { useAuth, apiClient } from "../context/AuthContext";
 import {
@@ -148,13 +149,15 @@ const CustomerForm = ({ onNext, onBack }) => {
     setErrorMsg("");
 
     try {
-      // Calculate 7% Florida sales tax if state is FL
-      const isFL = formData.state === "FL";
+      // Calculate Florida sales tax based on county ZIP code
       const basePrice =
         servicePlan.price === "Custom Quote"
           ? 0
           : parseFloat(servicePlan.price || 0);
-      const taxAmount = isFL ? basePrice * 0.07 : 0;
+      const flTaxInfo = getFloridaTaxInfo(formData.state, formData.zip_code);
+      const taxRate = flTaxInfo ? flTaxInfo.rate : 0;
+      const taxCounty = flTaxInfo ? flTaxInfo.county : null;
+      const taxAmount = Math.round(basePrice * taxRate * 100) / 100;
       const finalPriceWithTax = Math.round((basePrice + taxAmount) * 100) / 100;
 
       // Update flow context for subsequent steps (Payment, Review)
@@ -163,6 +166,8 @@ const CustomerForm = ({ onNext, onBack }) => {
         price: finalPriceWithTax,
         retailPrice: finalPriceWithTax,
         taxAmount: taxAmount,
+        taxRate: taxRate,
+        taxCounty: taxCounty,
       };
       setServicePlan(updatedPlan);
 
