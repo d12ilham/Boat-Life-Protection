@@ -279,7 +279,7 @@ export const submitFullApp = async (req, res) => {
       Surcharges: [],
       ReqFields: [],
 
-      // NOT USED â€” omitted entirely:
+      // NOT USED — omitted entirely:
       // LHName, LHAddress, LHCity, LHState, LHZipCode, LHPhoneNo, LHAccountNumber
       // AmountFinanced, FinanceTerm, FinanceType, APR
       // EngineSize, EngineSizeType, MSRPNADAValue
@@ -292,6 +292,10 @@ export const submitFullApp = async (req, res) => {
     if (appResult.ok && appResult.data && contractId) {
       const appData = appResult.data.App || appResult.data;
       const pdfBase64 = appData.PDF || appResult.data.PDF;
+      const galtContractNo = appData.ContractNo || appResult.data.ContractNo || null;
+      const signatures = appData.Signatures || appResult.data.Signatures || [];
+
+      let savedPdfUrl = null;
       if (pdfBase64) {
         try {
           const receiptsDir = path.join(process.cwd(), "public", "receipts");
@@ -302,27 +306,22 @@ export const submitFullApp = async (req, res) => {
           const filePath = path.join(receiptsDir, fileName);
           const pdfBuffer = Buffer.from(pdfBase64, "base64");
           fs.writeFileSync(filePath, pdfBuffer);
-          const savedPdfUrl = `/receipts/${fileName}`;
-
-          const signatures =
-            appData.Signatures || appResult.data.Signatures || [];
-          await db.query(
-            "UPDATE contracts SET pdf_url = $1, galt_signatures = $2, galt_sync_status = 'success' WHERE id = $3",
-            [savedPdfUrl, JSON.stringify(signatures), contractId],
-          );
+          savedPdfUrl = `/receipts/${fileName}`;
           console.log(
             `[GALT] Saved PDF for contract ${contractId} to ${savedPdfUrl}`,
           );
         } catch (saveErr) {
           console.error(
-            "[GALT] Failed to save GALT PDF or update database:",
+            "[GALT] Failed to save GALT PDF:",
             saveErr,
           );
-          await db.query("UPDATE contracts SET galt_sync_status = 'success' WHERE id = $1", [contractId]).catch(console.error);
         }
-      } else {
-        await db.query("UPDATE contracts SET galt_sync_status = 'success' WHERE id = $1", [contractId]).catch(console.error);
       }
+
+      await db.query(
+        "UPDATE contracts SET pdf_url = COALESCE($1, pdf_url), galt_signatures = $2, galt_sync_status = 'success', galt_contract_no = $3 WHERE id = $4",
+        [savedPdfUrl, JSON.stringify(signatures), galtContractNo, contractId],
+      );
     } else if (contractId) {
       await db.query("UPDATE contracts SET galt_sync_status = 'failed' WHERE id = $1", [contractId]).catch(console.error);
     }
