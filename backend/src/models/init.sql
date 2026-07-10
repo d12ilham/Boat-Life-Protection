@@ -35,12 +35,15 @@ CREATE TABLE IF NOT EXISTS contracts (
   signature_name VARCHAR(255),
   technician_name VARCHAR(255),
   pdf_url TEXT,
-  galt_signatures JSONB,
+  coverage VARCHAR(50),
+  contract_type VARCHAR(50),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 ALTER TABLE contracts ADD COLUMN IF NOT EXISTS technician_name VARCHAR(255);
 ALTER TABLE contracts ADD COLUMN IF NOT EXISTS galt_signatures JSONB;
+ALTER TABLE contracts ADD COLUMN IF NOT EXISTS coverage VARCHAR(50);
+ALTER TABLE contracts ADD COLUMN IF NOT EXISTS contract_type VARCHAR(50);
 
 -- NOTE: Default user seeding is handled by initDb.js using runtime bcrypt hashing.
 -- Do NOT add static password hashes here.

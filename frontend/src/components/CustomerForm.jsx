@@ -207,6 +207,8 @@ const CustomerForm = ({ onNext, onBack }) => {
             : 0.0,
           retail_price: finalPriceWithTax,
           vehicle_status: servicePlan.vehicleStatus || "NEW",
+          coverage: servicePlan.coverage,
+          contract_type: servicePlan.contractType || null,
         },
       });
 

@@ -41,7 +41,9 @@ async function run() {
       ADD COLUMN IF NOT EXISTS amount_financed NUMERIC(10, 2) DEFAULT 0,
       ADD COLUMN IF NOT EXISTS finance_term INTEGER DEFAULT 0,
       ADD COLUMN IF NOT EXISTS apr NUMERIC(10, 2) DEFAULT 0,
-      ADD COLUMN IF NOT EXISTS galt_signatures JSONB;
+      ADD COLUMN IF NOT EXISTS galt_signatures JSONB,
+      ADD COLUMN IF NOT EXISTS coverage VARCHAR(50),
+      ADD COLUMN IF NOT EXISTS contract_type VARCHAR(50);
     `);
     console.log("Altered contracts table.");
 

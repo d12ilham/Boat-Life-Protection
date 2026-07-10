@@ -1,4 +1,4 @@
-﻿/**
+/**
  * hubspotService.js
  *
  * Sends customer & contract data to HubSpot CRM after a successful payment.
@@ -165,6 +165,44 @@ function deriveRenewalAlertDate(contractEndDate) {
 }
 
 /**
+ * Derive the plan type in the format required by HubSpot dropdown:
+ * ESC Gold, ESC Platinum, PMP 1-Motor, PMP 2-Motor, PMP 4-Motor
+ */
+function derivePlanType(contract) {
+  const servicePlan = contract.service_plan || "";
+  const coverage = contract.coverage || "";
+  
+  const isPmp = servicePlan.toLowerCase().includes("pmp") || servicePlan.toLowerCase().includes("maintenance");
+  const isEsc = servicePlan.toLowerCase().includes("esc") || servicePlan.toLowerCase().includes("service contract");
+
+  if (isPmp) {
+    let motors = "1-Motor";
+    if (coverage.toLowerCase().includes("2 motor") || coverage.toLowerCase().includes("2-motor") || coverage.includes("2")) motors = "2-Motor";
+    else if (coverage.toLowerCase().includes("4 motor") || coverage.toLowerCase().includes("4-motor") || coverage.includes("4")) motors = "4-Motor";
+    else {
+      // Fallback
+      const text = `${servicePlan} ${contract.lift_category || ""}`.toLowerCase();
+      if (text.includes("4 motor") || text.includes("4-motor")) motors = "4-Motor";
+      else if (text.includes("2 motor") || text.includes("2-motor")) motors = "2-Motor";
+    }
+    return `PMP ${motors}`;
+  }
+
+  if (isEsc) {
+    let level = "Gold";
+    if (coverage.toLowerCase().includes("platinum")) level = "Platinum";
+    else {
+      // Fallback
+      const text = `${servicePlan} ${contract.lift_category || ""}`.toLowerCase();
+      if (text.includes("platinum")) level = "Platinum";
+    }
+    return `ESC ${level}`;
+  }
+
+  return servicePlan;
+}
+
+/**
  * Main entry point called by integrationService.js
  */
 export async function syncToHubSpot(customer, contract) {
@@ -219,14 +257,19 @@ export async function syncToHubSpot(customer, contract) {
   const dealName = `${contract.service_plan || "BLP Plan"} - ${customerFullName} - ${saleDate}`;
 
   const productId = deriveProductId(contract.service_plan);
-  const coverageLevel = deriveCoverageLevel(
-    contract.service_plan,
-    contract.lift_category
-  );
-  const motorCount = deriveMotorCount(
-    contract.service_plan,
-    contract.lift_category
-  );
+  const rawCoverage = contract.coverage || "";
+  const coverageLower = rawCoverage.toLowerCase();
+
+  const coverageLevel = coverageLower.includes("platinum")
+    ? "Platinum"
+    : coverageLower.includes("gold")
+      ? "Gold"
+      : deriveCoverageLevel(contract.service_plan, contract.lift_category);
+
+  const motorCount = coverageLower.includes("motor")
+    ? rawCoverage.replace(/[^0-9]/g, "")
+    : deriveMotorCount(contract.service_plan, contract.lift_category);
+
   const renewalAlertDate = deriveRenewalAlertDate(contract.contract_end_date);
 
   const dealProperties = {
@@ -241,7 +284,7 @@ export async function syncToHubSpot(customer, contract) {
       : {}),
 
     // Custom BLP Deal Properties (must be created in HubSpot first)
-    blp_plan_type: contract.service_plan || "",
+    blp_plan_type: derivePlanType(contract),
     ...(productId ? { blp_product_id: productId } : {}),
     ...(coverageLevel ? { blp_coverage_level: coverageLevel } : {}),
     ...(motorCount ? { blp_motor_count: motorCount } : {}),

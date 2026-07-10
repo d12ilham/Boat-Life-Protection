@@ -63,7 +63,8 @@ export const initCustomerAndContract = async (req, res) => {
         date_of_sale, in_service_date, mnf_warranty_length,
         vehicle_sale_price, retail_price, vehicle_status,
         current_odometer, odometer_type, term_miles,
-        amount_financed, finance_term, apr
+        amount_financed, finance_term, apr,
+        coverage, contract_type
       )
       VALUES (
         $1,$2,$3,$4,$5,'pending',
@@ -71,7 +72,8 @@ export const initCustomerAndContract = async (req, res) => {
         $12,$13,$14,
         $15,$16,$17,
         '0','no','999999',
-        0,0,0
+        0,0,0,
+        $18, $19
       ) RETURNING id`,
       [
         customerId,
@@ -91,6 +93,8 @@ export const initCustomerAndContract = async (req, res) => {
         contract.vehicle_sale_price ? parseFloat(contract.vehicle_sale_price) : 0.0,
         contract.retail_price ? parseFloat(contract.retail_price) : 0.0,
         vehicleStatus,
+        contract.coverage || null,
+        contract.contract_type || null,
       ]
     );
 
