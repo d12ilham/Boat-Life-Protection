@@ -125,8 +125,13 @@ const Payment = ({ onNext, onBack }) => {
               {servicePlan?.taxAmount > 0 && (
                 <span className="text-xs text-emerald-800 font-bold bg-[#E3F9E9] border border-[#A3E5B7] px-4 py-1.5 rounded-xl inline-block shadow-sm animate-in fade-in duration-200">
                   {servicePlan.taxCounty
-                    ? `Includes ${(servicePlan.taxRate * 100).toFixed(1)}% Florida Sales Tax � ${servicePlan.taxCounty} (+$${servicePlan.taxAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })})`
+                    ? `Includes ${(servicePlan.taxRate * 100).toFixed(1)}% Florida Sales Tax - ${servicePlan.taxCounty} (+$${servicePlan.taxAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })})`
                     : `Includes Florida Sales Tax (+$${servicePlan.taxAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })})`}
+                </span>
+              )}
+              {import.meta.env.VITE_APP_ENV === "development" && (
+                <span className="text-xs text-amber-800 font-bold bg-[#FFF9E6] border border-[#FFE5A3] px-4 py-1.5 rounded-xl inline-block shadow-sm animate-in fade-in duration-200">
+                  Development Mode: Stripe will only charge $1.00 for testing.
                 </span>
               )}
             </div>
@@ -135,7 +140,7 @@ const Payment = ({ onNext, onBack }) => {
 
         {errorMsg && (
           <div className="p-4 bg-red-50 text-red-700 rounded-xl border border-red-200 text-sm font-semibold flex items-center justify-center gap-2">
-            <span className="text-lg">âš </span> {errorMsg}
+            <AlertTriangle className="h-5 w-5 text-red-700 inline-block shrink-0" /> {errorMsg}
           </div>
         )}
 

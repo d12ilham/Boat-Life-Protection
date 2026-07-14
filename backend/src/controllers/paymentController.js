@@ -43,9 +43,13 @@ export const createPaymentIntent = async (req, res) => {
     );
     const { email } = customerResult.rows[0];
 
+    // Determine the payment amount. Charge $1 (100 cents) in development, and the real amount in production.
+    const isDev = (process.env.NODE_ENV || "development").toLowerCase() === "development";
+    const chargeAmount = isDev ? 100 : Math.round(amount * 100);
+
     // Create PaymentIntent
     const paymentIntent = await stripe.paymentIntents.create({
-      amount: Math.round(amount * 100), // convert to cents
+      amount: chargeAmount,
       currency: "usd",
       metadata: { contract_id, customer_id, customer_email: email },
       automatic_payment_methods: { enabled: true },
