@@ -119,7 +119,7 @@ const CustomerForm = ({ onNext, onBack }) => {
     make: customer?.make || "",
     model: customer?.model || "",
     date_of_sale: customer?.date_of_sale || "",
-    in_service_date: customer?.in_service_date || "",
+    in_service_date: customer?.date_of_sale || customer?.in_service_date || "",
     mnf_warranty_length: customer?.mnf_warranty_length || "12",
   });
 
@@ -127,7 +127,13 @@ const CustomerForm = ({ onNext, onBack }) => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData((prev) => {
+      const updated = { ...prev, [name]: value };
+      if (name === "date_of_sale") {
+        updated.in_service_date = value;
+      }
+      return updated;
+    });
   };
 
   const handleInspectionSet = (result) => {
@@ -737,9 +743,9 @@ const CustomerForm = ({ onNext, onBack }) => {
                     type="date"
                     name="in_service_date"
                     required
-                    className="input-field px-4"
+                    className="input-field px-4 opacity-70 cursor-not-allowed bg-slate-100/80 border-slate-200"
                     value={formData.in_service_date}
-                    onChange={handleChange}
+                    readOnly
                   />
                 </div>
               </div>
