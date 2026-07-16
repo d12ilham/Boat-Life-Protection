@@ -273,7 +273,69 @@ export const createQboInvoice = async (customer, contract, paymentIntent) => {
     // 2. Resolve Service Item
     const qboItem = await getOrCreateQboItem(accessToken, realmId, contract.service_plan);
 
-    // 3. Assemble and POST Invoice
+    // 3. Construct Invoice Lines
+    const lines = [];
+    const taxAmount = contract.tax_amount ? parseFloat(contract.tax_amount) : 0;
+
+    if (taxAmount > 0) {
+      const baseAmount = parseFloat(contract.amount) - taxAmount;
+      lines.push({
+        Description: `Boat Lift Protection - ${contract.service_plan} Plan (Base Price)`,
+        Amount: baseAmount,
+        DetailType: "SalesItemLineDetail",
+        SalesItemLineDetail: {
+          ItemRef: {
+            value: qboItem.value,
+            name: qboItem.name
+          },
+          UnitPrice: baseAmount,
+          Qty: 1,
+          ServiceDate: contract.contract_start_date ? new Date(contract.contract_start_date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
+        }
+      });
+
+      // Resolve and add Sales Tax Line
+      const qboTaxItem = await getOrCreateQboItem(accessToken, realmId, "Sales Tax");
+      lines.push({
+        Description: `${contract.tax_county || 'Florida'} Sales Tax (${(parseFloat(contract.tax_rate) * 100).toFixed(1)}%)`,
+        Amount: taxAmount,
+        DetailType: "SalesItemLineDetail",
+        SalesItemLineDetail: {
+          ItemRef: {
+            value: qboTaxItem.value,
+            name: qboTaxItem.name
+          },
+          UnitPrice: taxAmount,
+          Qty: 1,
+          ServiceDate: contract.contract_start_date ? new Date(contract.contract_start_date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
+        }
+      });
+    } else {
+      // Backward compatibility / No Tax
+      lines.push({
+        Description: `Boat Lift Protection - ${contract.service_plan} Plan`,
+        Amount: parseFloat(contract.amount),
+        DetailType: "SalesItemLineDetail",
+        SalesItemLineDetail: {
+          ItemRef: {
+            value: qboItem.value,
+            name: qboItem.name
+          },
+          UnitPrice: parseFloat(contract.amount),
+          Qty: 1,
+          ServiceDate: contract.contract_start_date ? new Date(contract.contract_start_date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
+        }
+      });
+    }
+
+    // Add Subtotal Line
+    lines.push({
+      Amount: parseFloat(contract.amount),
+      DetailType: "SubTotalLineDetail",
+      SubTotalLineDetail: {}
+    });
+
+    // 4. Assemble and POST Invoice
     const invoiceUrl = `${baseUrl}/v3/company/${realmId}/invoice?minorversion=75`;
     const invoicePayload = {
       CustomerRef: {
@@ -290,27 +352,7 @@ export const createQboInvoice = async (customer, contract, paymentIntent) => {
       CustomerMemo: {
         value: `Thank you for your purchase of the ${contract.service_plan} plan!`
       },
-      Line: [
-        {
-          Description: `Boat Lift Protection - ${contract.service_plan} Plan`,
-          Amount: parseFloat(contract.amount),
-          DetailType: "SalesItemLineDetail",
-          SalesItemLineDetail: {
-            ItemRef: {
-              value: qboItem.value,
-              name: qboItem.name
-            },
-            UnitPrice: parseFloat(contract.amount),
-            Qty: 1,
-            ServiceDate: contract.contract_start_date ? new Date(contract.contract_start_date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
-          }
-        },
-        {
-          Amount: parseFloat(contract.amount),
-          DetailType: "SubTotalLineDetail",
-          SubTotalLineDetail: {}
-        }
-      ]
+      Line: lines
     };
 
     console.log(`[QBO Service] Sending Invoice payload to QuickBooks:`, JSON.stringify(invoicePayload));

@@ -38,6 +38,9 @@ CREATE TABLE IF NOT EXISTS contracts (
   coverage VARCHAR(50),
   contract_type VARCHAR(50),
   galt_contract_no VARCHAR(100),
+  tax_amount NUMERIC(10, 2) DEFAULT 0.00,
+  tax_rate NUMERIC(5, 4) DEFAULT 0.0000,
+  tax_county VARCHAR(100),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -46,6 +49,9 @@ ALTER TABLE contracts ADD COLUMN IF NOT EXISTS galt_signatures JSONB;
 ALTER TABLE contracts ADD COLUMN IF NOT EXISTS coverage VARCHAR(50);
 ALTER TABLE contracts ADD COLUMN IF NOT EXISTS contract_type VARCHAR(50);
 ALTER TABLE contracts ADD COLUMN IF NOT EXISTS galt_contract_no VARCHAR(100);
+ALTER TABLE contracts ADD COLUMN IF NOT EXISTS tax_amount NUMERIC(10, 2) DEFAULT 0.00;
+ALTER TABLE contracts ADD COLUMN IF NOT EXISTS tax_rate NUMERIC(5, 4) DEFAULT 0.0000;
+ALTER TABLE contracts ADD COLUMN IF NOT EXISTS tax_county VARCHAR(100);
 
 -- NOTE: Default user seeding is handled by initDb.js using runtime bcrypt hashing.
 -- Do NOT add static password hashes here.

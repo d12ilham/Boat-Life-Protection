@@ -197,6 +197,9 @@ const CustomerForm = ({ onNext, onBack }) => {
         contract: {
           service_plan: servicePlan.name,
           amount: finalPriceWithTax,
+          tax_amount: taxAmount,
+          tax_rate: taxRate,
+          tax_county: taxCounty,
           serial_number: formData.serial_number,
           year: formData.year ? parseInt(formData.year) : null,
           make: formData.make,
