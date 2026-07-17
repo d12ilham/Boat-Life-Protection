@@ -1,5 +1,46 @@
 import db from '../config/db.js';
 
+let cachedEndpoints = null;
+let cacheExpiry = 0;
+
+export const getDiscoveryEndpoints = async () => {
+  // Cache endpoints for 1 hour to prevent redundant network requests
+  if (cachedEndpoints && Date.now() < cacheExpiry) {
+    return cachedEndpoints;
+  }
+
+  const env = process.env.QBO_ENVIRONMENT || 'sandbox';
+  const discoveryUrl = env === 'production'
+    ? 'https://developer.intuit.com/.well-known/openid_configuration'
+    : 'https://developer.intuit.com/.well-known/openid_sandbox_configuration';
+
+  console.log(`[QBO Service] Fetching Discovery Document from: ${discoveryUrl}`);
+  try {
+    const res = await fetch(discoveryUrl);
+    if (res.ok) {
+      const config = await res.json();
+      if (config.authorization_endpoint && config.token_endpoint) {
+        cachedEndpoints = {
+          authorizationEndpoint: config.authorization_endpoint,
+          tokenEndpoint: config.token_endpoint
+        };
+        cacheExpiry = Date.now() + 60 * 60 * 1000; // 1 hour cache
+        console.log('[QBO Service] Successfully retrieved endpoints dynamically from Discovery Document.');
+        return cachedEndpoints;
+      }
+    }
+    console.warn(`[QBO Service] Discovery response not OK (${res.status}). Using fallback static endpoints.`);
+  } catch (err) {
+    console.error('[QBO Service] Error fetching QuickBooks Discovery Document. Using fallback static endpoints:', err.message);
+  }
+
+  // Fallback endpoints
+  return {
+    authorizationEndpoint: 'https://appcenter.intuit.com/connect/oauth2',
+    tokenEndpoint: 'https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer'
+  };
+};
+
 const getQboBaseUrl = () => {
   const env = process.env.QBO_ENVIRONMENT || 'sandbox';
   return env === 'production' 
@@ -22,7 +63,8 @@ export const refreshQboToken = async (currentRefreshToken) => {
   const credentials = `${clientId}:${clientSecret}`;
   const authHeader = `Basic ${Buffer.from(credentials).toString('base64')}`;
 
-  const response = await fetch('https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer', {
+  const { tokenEndpoint } = await getDiscoveryEndpoints();
+  const response = await fetch(tokenEndpoint, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',

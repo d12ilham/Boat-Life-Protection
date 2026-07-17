@@ -1,6 +1,7 @@
 import db from '../config/db.js';
+import { getDiscoveryEndpoints } from '../services/qboService.js';
 
-export const connectQBO = (req, res) => {
+export const connectQBO = async (req, res) => {
   const clientId = process.env.QBO_CLIENT_ID;
   const redirectUri = process.env.QBO_REDIRECT_URI;
   const env = process.env.QBO_ENVIRONMENT || 'sandbox';
@@ -9,8 +10,9 @@ export const connectQBO = (req, res) => {
     return res.status(500).send('QuickBooks Client ID or Redirect URI is not configured.');
   }
 
-  // QuickBooks authorization endpoint
-  const authUrl = `https://appcenter.intuit.com/connect/oauth2` +
+  // QuickBooks authorization endpoint resolved dynamically
+  const { authorizationEndpoint } = await getDiscoveryEndpoints();
+  const authUrl = `${authorizationEndpoint}` +
     `?client_id=${encodeURIComponent(clientId)}` +
     `&redirect_uri=${encodeURIComponent(redirectUri)}` +
     `&response_type=code` +
@@ -23,7 +25,11 @@ export const connectQBO = (req, res) => {
 
 export const callbackQBO = async (req, res) => {
   console.log(`[QBO Controller] Received callback from QuickBooks...`);
-  const { code, realmId } = req.query;
+  const { code, realmId, state } = req.query;
+
+  if (state !== 'qbo_auth_state') {
+    return res.status(400).send('Invalid state parameter. Possible CSRF attack.');
+  }
 
   if (!code || !realmId) {
     return res.status(400).send('Authorization code or Realm ID is missing.');
@@ -42,7 +48,8 @@ export const callbackQBO = async (req, res) => {
   const authHeader = `Basic ${Buffer.from(credentials).toString('base64')}`;
 
   try {
-    const response = await fetch('https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer', {
+    const { tokenEndpoint } = await getDiscoveryEndpoints();
+    const response = await fetch(tokenEndpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
