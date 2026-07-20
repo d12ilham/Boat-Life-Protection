@@ -1,5 +1,6 @@
 import db from '../config/db.js';
 import { stampSignaturesOnPdf } from '../services/pdfService.js';
+import { getSetting } from '../config/configResolver.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -11,6 +12,12 @@ export const initCustomerAndContract = async (req, res) => {
   const { technician_id, customer, contract } = req.body;
 
   try {
+    // Check if Stripe Test Mode ($1.00 Charge) is active
+    const stripeTestMode = await getSetting("STRIPE_TEST_MODE");
+    const isTestMode = stripeTestMode === "true" || (stripeTestMode === null && (process.env.NODE_ENV || "development").toLowerCase() === "development");
+
+    const finalAmount = isTestMode ? 1.00 : (contract.amount || 0);
+    const finalTaxAmount = isTestMode ? 0.00 : (contract.tax_amount ? parseFloat(contract.tax_amount) : 0.00);
     // 1. Create or Find Customer
     let customerResult = await db.query('SELECT id FROM customers WHERE email = $1', [customer.email]);
     let customerId;
@@ -82,7 +89,7 @@ export const initCustomerAndContract = async (req, res) => {
         technician_id || null,
         req.body.technician_name,
         contract.service_plan,
-        contract.amount,
+        finalAmount,
         contract.serial_number,
         contract.year ? parseInt(contract.year) : null,
         contract.make,
@@ -97,7 +104,7 @@ export const initCustomerAndContract = async (req, res) => {
         vehicleStatus,
         contract.coverage || null,
         contract.contract_type || null,
-        contract.tax_amount ? parseFloat(contract.tax_amount) : 0.00,
+        finalTaxAmount,
         contract.tax_rate ? parseFloat(contract.tax_rate) : 0.0000,
         contract.tax_county || null,
       ]

@@ -12,6 +12,7 @@ const SETTING_SCHEMAS = [
   { key: 'QBO_REDIRECT_URI', category: 'quickbooks', isSecret: false, label: 'Redirect URI', description: 'OAuth callback URL configured in Intuit App Portal' },
 
   // Stripe
+  { key: 'STRIPE_TEST_MODE', category: 'stripe', isSecret: false, label: 'Test Mode ($1.00 Charge)', description: 'When enabled, Stripe charges $1.00 for payment testing and updates contract totals to $1.00 across QuickBooks, Galt, and HubSpot.', options: ['false', 'true'] },
   { key: 'STRIPE_PUBLISHABLE_KEY', category: 'stripe', isSecret: false, label: 'Publishable Key', description: 'Stripe Publishable Key (pk_test_... or pk_live_...)' },
   { key: 'STRIPE_SECRET_KEY', category: 'stripe', isSecret: true, label: 'Secret Key', description: 'Stripe Secret Key (sk_test_... or sk_live_...)' },
   { key: 'STRIPE_WEBHOOK_SECRET', category: 'stripe', isSecret: true, label: 'Webhook Secret', description: 'Stripe Webhook Endpoint Secret (whsec_...)' },
@@ -19,6 +20,8 @@ const SETTING_SCHEMAS = [
   // HubSpot
   { key: 'HUBSPOT_API_KEY', category: 'hubspot', isSecret: true, label: 'Private App Access Token', description: 'HubSpot Private App Access Token (pat-na2-...)' },
   { key: 'HUBSPOT_ACCOUNT_ID', category: 'hubspot', isSecret: false, label: 'Portal / Account ID', description: 'HubSpot Hub ID / Account ID' },
+  { key: 'HUBSPOT_PIPELINE_ID', category: 'hubspot', isSecret: false, label: 'Pipeline ID', description: 'HubSpot Deal Pipeline ID (defaults to "default")' },
+  { key: 'HUBSPOT_OWNER_ID', category: 'hubspot', isSecret: false, label: 'Owner ID', description: 'HubSpot Owner User ID assigned to Deals (optional)' },
 
   // Galt API
   { key: 'GALT_API_BASE_URL', category: 'galt', isSecret: false, label: 'API Base URL', description: 'Galt Enterprises endpoint URL' },

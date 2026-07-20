@@ -14,7 +14,9 @@ async function getStripeInstance() {
 export const getStripeConfig = async (req, res) => {
   try {
     const pubKey = (await getSetting("STRIPE_PUBLISHABLE_KEY")) || process.env.VITE_STRIPE_PUB_KEY || process.env.STRIPE_PUBLISHABLE_KEY || "";
-    res.json({ publishableKey: pubKey });
+    const testModeSetting = await getSetting("STRIPE_TEST_MODE");
+    const isTestMode = testModeSetting === "true" || (testModeSetting === null && (process.env.NODE_ENV || "development").toLowerCase() === "development");
+    res.json({ publishableKey: pubKey, testMode: isTestMode });
   } catch (err) {
     console.error("Error fetching Stripe config:", err);
     res.status(500).json({ message: "Error loading Stripe configuration" });
@@ -60,9 +62,10 @@ export const createPaymentIntent = async (req, res) => {
     );
     const { email } = customerResult.rows[0];
 
-    // Determine the payment amount. Charge $1 (100 cents) in development, and the real amount in production.
-    const isDev = (process.env.NODE_ENV || "development").toLowerCase() === "development";
-    const chargeAmount = isDev ? 100 : Math.round(amount * 100);
+    // Determine the payment amount. Charge $1 (100 cents) if Stripe Test Mode is enabled.
+    const testModeSetting = await getSetting("STRIPE_TEST_MODE");
+    const isTestMode = testModeSetting === "true" || (testModeSetting === null && (process.env.NODE_ENV || "development").toLowerCase() === "development");
+    const chargeAmount = isTestMode ? 100 : Math.round(amount * 100);
 
     // Create PaymentIntent
     const stripe = await getStripeInstance();

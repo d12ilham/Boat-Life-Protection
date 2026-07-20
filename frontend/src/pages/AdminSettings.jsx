@@ -256,13 +256,15 @@ export default function AdminSettings() {
     if (activeTab === "stripe") {
       const secretKey = settings.find((s) => s.key === "STRIPE_SECRET_KEY");
       const webhook = settings.find((s) => s.key === "STRIPE_WEBHOOK_SECRET");
+      const testMode = settings.find((s) => s.key === "STRIPE_TEST_MODE");
+      const isTestModeActive = testMode?.value === "true";
       const isConfigured = secretKey?.isSet;
       return {
         title: "Stripe Payment Gateway",
-        statusText: isConfigured ? "Configured" : "Missing Secret Key",
+        statusText: isConfigured ? (isTestModeActive ? "Configured (Test Mode $1.00)" : "Configured (Live Mode)") : "Missing Secret Key",
         isOk: isConfigured,
         details: isConfigured
-          ? `Webhook Secret: ${webhook?.isSet ? "Configured" : "Not Set"}`
+          ? `Webhook: ${webhook?.isSet ? "Configured" : "Not Set"} | Mode: ${isTestModeActive ? "Test Mode Enabled ($1.00 Charges)" : "Live Mode (Full Charges)"}`
           : "Configure your Stripe Secret Key to process payments.",
       };
     } else if (activeTab === "hubspot") {
@@ -534,7 +536,11 @@ export default function AdminSettings() {
                     >
                       {setting.options.map((opt) => (
                         <option key={opt} value={opt}>
-                          {opt.toUpperCase()}
+                          {opt === 'true'
+                            ? 'ENABLED (Charge $1.00 for Testing)'
+                            : opt === 'false'
+                              ? 'DISABLED (Charge Full Contract Amount)'
+                              : opt.toUpperCase()}
                         </option>
                       ))}
                     </select>

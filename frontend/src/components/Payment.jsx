@@ -79,13 +79,19 @@ const Payment = ({ onNext, onBack }) => {
   });
   const fetched = useRef(false);
 
+  const [isTestMode, setIsTestMode] = useState(false);
+
   useEffect(() => {
     const fetchStripeKey = async () => {
       try {
         const res = await apiClient.get("/stripe/config");
-        const key = res.data.publishableKey || import.meta.env.VITE_STRIPE_PUB_KEY;
+        const key =
+          res.data.publishableKey || import.meta.env.VITE_STRIPE_PUB_KEY;
         if (key) {
           setStripePromise(loadStripe(key));
+        }
+        if (res.data.testMode !== undefined) {
+          setIsTestMode(res.data.testMode);
         }
       } catch (err) {
         console.error("Could not fetch active Stripe key from API:", err);
@@ -120,7 +126,27 @@ const Payment = ({ onNext, onBack }) => {
   return (
     <div className="animate-in fade-in duration-300 flex flex-col">
       {/* Scrollable Content Body */}
-      <div className="p-6 sm:p-10 max-w-2xl mx-auto space-y-8 w-full">
+      <div className="p-6 sm:p-10 max-w-2xl mx-auto space-y-6 w-full">
+        {/* Test Mode $1.00 Banner */}
+        {isTestMode && (
+          <div className="bg-amber-50 border border-amber-300 rounded-2xl p-4 sm:p-5 flex items-start sm:items-center gap-3 sm:gap-4 shadow-sm animate-in fade-in slide-in-from-top-2 duration-300">
+            <div className="p-2.5 bg-amber-100 rounded-xl shrink-0 text-amber-700">
+              <AlertTriangle className="w-6 h-6 sm:w-7 sm:h-7" />
+            </div>
+            <div>
+              <h4 className="font-extrabold text-amber-950 text-sm sm:text-base flex items-center gap-2">
+                Stripe Test Mode Active ($1.00 Payment)
+              </h4>
+              <p className="text-xs text-amber-800/90 mt-0.5 leading-relaxed">
+                Stripe is currently operating in Test Mode. Your card will only
+                be charged <strong>$1.00</strong> for this test transaction, and
+                all contract records across QuickBooks, Galt Warranty, and
+                HubSpot will sync as a <strong>$1.00</strong> test order.
+              </p>
+            </div>
+          </div>
+        )}
+
         <div className="bg-gradient-to-br from-[#0b1a30]/5 to-[#0b1a30]/10 text-[#0b1a30] rounded-2xl p-6 sm:p-8 text-center shadow-sm border border-slate-200/80 relative overflow-hidden">
           {/* subtle pattern overlay */}
           <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#0ea5e9_1px,transparent_1px)] [background-size:16px_16px]"></div>
@@ -131,22 +157,22 @@ const Payment = ({ onNext, onBack }) => {
             </span>
             <span className="text-5xl font-extrabold tracking-tight text-[#0b1a30]">
               $
-              {servicePlan?.price?.toLocaleString()}
+              {isTestMode
+                ? "1.00"
+                : servicePlan?.price?.toLocaleString(undefined, {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
             </span>
             <div className="mt-4 flex flex-col items-center gap-2">
               <span className="text-xs text-[#2f4269] font-bold bg-white border border-[#D0E2FF] px-4 py-1.5 rounded-xl inline-block shadow-sm">
                 {servicePlan?.name} Base Plan
               </span>
-              {servicePlan?.taxAmount > 0 && (
+              {!isTestMode && servicePlan?.taxAmount > 0 && (
                 <span className="text-xs text-emerald-800 font-bold bg-[#E3F9E9] border border-[#A3E5B7] px-4 py-1.5 rounded-xl inline-block shadow-sm animate-in fade-in duration-200">
                   {servicePlan.taxCounty
                     ? `Includes ${(servicePlan.taxRate * 100).toFixed(1)}% Florida Sales Tax - ${servicePlan.taxCounty} (+$${servicePlan.taxAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })})`
                     : `Includes Florida Sales Tax (+$${servicePlan.taxAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })})`}
-                </span>
-              )}
-              {import.meta.env.VITE_APP_ENV === "development" && (
-                <span className="text-xs text-amber-800 font-bold bg-[#FFF9E6] border border-[#FFE5A3] px-4 py-1.5 rounded-xl inline-block shadow-sm animate-in fade-in duration-200">
-                  Development Mode: Stripe will only charge $1.00 for testing.
                 </span>
               )}
             </div>
@@ -155,7 +181,8 @@ const Payment = ({ onNext, onBack }) => {
 
         {errorMsg && (
           <div className="p-4 bg-red-50 text-red-700 rounded-xl border border-red-200 text-sm font-semibold flex items-center justify-center gap-2">
-            <AlertTriangle className="h-5 w-5 text-red-700 inline-block shrink-0" /> {errorMsg}
+            <AlertTriangle className="h-5 w-5 text-red-700 inline-block shrink-0" />{" "}
+            {errorMsg}
           </div>
         )}
 

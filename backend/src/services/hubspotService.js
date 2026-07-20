@@ -294,16 +294,17 @@ export async function syncToHubSpot(customer, contract) {
   const servicePlan = contract.service_plan || "";
   const isPmp = servicePlan.toLowerCase().includes("pmp") || servicePlan.toLowerCase().includes("maintenance");
 
+  const pipelineId = (await getSetting("HUBSPOT_PIPELINE_ID")) || process.env.HUBSPOT_PIPELINE_ID || "default";
+  const ownerId = (await getSetting("HUBSPOT_OWNER_ID")) || process.env.HUBSPOT_OWNER_ID;
+
   const dealProperties = {
     dealname: dealName,
     amount: String(contract.amount || 0),
     closedate: closedateISO,
     dealstage: "closedwon",
-    pipeline: process.env.HUBSPOT_PIPELINE_ID || "default",
+    pipeline: pipelineId,
     dealtype: "newbusiness",
-    ...(process.env.HUBSPOT_OWNER_ID
-      ? { hubspot_owner_id: process.env.HUBSPOT_OWNER_ID }
-      : {}),
+    ...(ownerId ? { hubspot_owner_id: ownerId } : {}),
 
     // Custom BLP Deal Properties (must be created in HubSpot first)
     blp_plan_type: derivePlanType(contract),
