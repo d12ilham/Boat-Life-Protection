@@ -2,9 +2,17 @@ import express from 'express';
 import jwt from 'jsonwebtoken';
 import { login, refreshToken, logout } from '../controllers/authController.js';
 import { initCustomerAndContract, signContract, getContract } from '../controllers/contractController.js';
-import { createPaymentIntent, stripeWebhook } from '../controllers/paymentController.js';
+import { createPaymentIntent, stripeWebhook, getStripeConfig } from '../controllers/paymentController.js';
 import { getRate, submitApp, submitFullApp, getAppPdf, voidApp, checkVin, getStandardRate } from '../controllers/galtController.js';
 import { connectQBO, callbackQBO, getQboStatus } from '../controllers/qboController.js';
+import { 
+  verifyPassword, 
+  getAdminSettings, 
+  revealSetting, 
+  updateAdminSettings, 
+  disconnectQBO,
+  getSystemStatus
+} from '../controllers/adminSettingsController.js';
 
 const router = express.Router();
 
@@ -22,6 +30,15 @@ export const requireAuth = (req, res, next) => {
   } catch (err) {
     return res.status(401).json({ message: 'Token expired or invalid' });
   }
+};
+
+export const requireAdmin = (req, res, next) => {
+  requireAuth(req, res, () => {
+    if (req.user?.role !== 'admin') {
+      return res.status(403).json({ message: 'Forbidden: Admin access required' });
+    }
+    next();
+  });
 };
 
 // ── Authentication Routes ─────────────────────────────────────────────────────
@@ -44,12 +61,21 @@ router.post('/galt/apppdf', requireAuth, getAppPdf);
 router.post('/galt/void', requireAuth, voidApp);         // NEW: void endpoint
 router.post('/galt/vincheck', requireAuth, checkVin);
 
-// ── Stripe Webhook (must be raw body, no auth middleware) ─────────────────────
+// ── Stripe Webhook & Config (must be accessible for payments) ─────────────────
+router.get('/stripe/config', getStripeConfig);
 router.post('/webhook/stripe', stripeWebhook);
 
 // -- QuickBooks Routes ----------------------------------------------------------
 router.get('/qbo/connect', connectQBO);
 router.get('/qbo/callback', callbackQBO);
 router.get('/qbo/status', requireAuth, getQboStatus);
+
+// -- Admin Settings Routes ------------------------------------------------------
+router.post('/admin/verify-password', requireAdmin, verifyPassword);
+router.get('/admin/settings', requireAdmin, getAdminSettings);
+router.post('/admin/settings/reveal', requireAdmin, revealSetting);
+router.post('/admin/settings', requireAdmin, updateAdminSettings);
+router.post('/admin/qbo/disconnect', requireAdmin, disconnectQBO);
+router.get('/admin/system-status', requireAdmin, getSystemStatus);
 
 export default router;

@@ -12,12 +12,13 @@
  */
 
 import fetch from "node-fetch";
+import { getSetting } from "../config/configResolver.js";
 
 const HUBSPOT_BASE = "https://api.hubapi.com";
 
-function authHeader() {
-  const token = process.env.HUBSPOT_API_KEY;
-  if (!token) throw new Error("HUBSPOT_API_KEY is not configured in .env");
+async function authHeader() {
+  const token = await getSetting("HUBSPOT_API_KEY");
+  if (!token) throw new Error("HUBSPOT_API_KEY is not configured");
   return {
     Authorization: `Bearer ${token}`,
     "Content-Type": "application/json",
@@ -38,7 +39,7 @@ async function findContactByEmail(email) {
 
   const res = await fetch(url, {
     method: "POST",
-    headers: authHeader(),
+    headers: await authHeader(),
     body: JSON.stringify(body),
   });
 
@@ -55,7 +56,7 @@ async function createContact(properties) {
   const url = `${HUBSPOT_BASE}/crm/v3/objects/contacts`;
   const res = await fetch(url, {
     method: "POST",
-    headers: authHeader(),
+    headers: await authHeader(),
     body: JSON.stringify({ properties }),
   });
 
@@ -72,7 +73,7 @@ async function updateContact(contactId, properties) {
   const url = `${HUBSPOT_BASE}/crm/v3/objects/contacts/${contactId}`;
   const res = await fetch(url, {
     method: "PATCH",
-    headers: authHeader(),
+    headers: await authHeader(),
     body: JSON.stringify({ properties }),
   });
 
@@ -100,7 +101,7 @@ async function createDeal(contactId, dealProperties) {
 
   const createRes = await fetch(createUrl, {
     method: "POST",
-    headers: authHeader(),
+    headers: await authHeader(),
     body: JSON.stringify(payload),
   });
 

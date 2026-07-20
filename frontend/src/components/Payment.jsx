@@ -10,10 +10,6 @@ import {
   useElements,
 } from "@stripe/react-stripe-js";
 
-// Make sure to call loadStripe outside of a componentâ€™s render to avoid
-// recreating the Stripe object on every render.
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUB_KEY);
-
 const CheckoutForm = ({ contract_id }) => {
   const stripe = useStripe();
   const elements = useElements();
@@ -77,7 +73,26 @@ const Payment = ({ onNext, onBack }) => {
   const { contractId, servicePlan } = useFlow();
   const [clientSecret, setClientSecret] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
+  const [stripePromise, setStripePromise] = useState(() => {
+    const defaultKey = import.meta.env.VITE_STRIPE_PUB_KEY;
+    return defaultKey ? loadStripe(defaultKey) : null;
+  });
   const fetched = useRef(false);
+
+  useEffect(() => {
+    const fetchStripeKey = async () => {
+      try {
+        const res = await apiClient.get("/stripe/config");
+        const key = res.data.publishableKey || import.meta.env.VITE_STRIPE_PUB_KEY;
+        if (key) {
+          setStripePromise(loadStripe(key));
+        }
+      } catch (err) {
+        console.error("Could not fetch active Stripe key from API:", err);
+      }
+    };
+    fetchStripeKey();
+  }, []);
 
   useEffect(() => {
     if (fetched.current) return;

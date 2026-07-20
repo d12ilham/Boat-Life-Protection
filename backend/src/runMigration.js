@@ -72,7 +72,17 @@ async function run() {
       ADD COLUMN IF NOT EXISTS email_sent_status VARCHAR(50) DEFAULT 'pending',
       ADD COLUMN IF NOT EXISTS galt_sync_status VARCHAR(50) DEFAULT 'pending';
     `);
-    console.log("Added automation status columns to contracts.");
+    // Create app_settings table
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS app_settings (
+        key VARCHAR(255) PRIMARY KEY,
+        value TEXT NOT NULL,
+        category VARCHAR(50) NOT NULL DEFAULT 'general',
+        is_secret BOOLEAN DEFAULT true,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+    console.log("Created app_settings table.");
 
     console.log("Migration complete!");
     process.exit(0);

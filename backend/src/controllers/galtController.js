@@ -1,27 +1,29 @@
 import fs from "fs";
 import path from "path";
 import db from "../config/db.js";
+import { getSetting } from "../config/configResolver.js";
 
 /**
  * Controller for Galt F&I Online Interface API endpoints
  * Products: 102 = Maintenance (PMP), 103 = Service Contract (ESC)
  */
 
-const getGaltCredentials = () => ({
-  Username: process.env.GALT_USERNAME,
-  Password: process.env.GALT_PASSWORD,
-  DealerNumber: process.env.GALT_DEALER_NUMBER,
+const getGaltCredentials = async () => ({
+  Username: await getSetting("GALT_USERNAME"),
+  Password: await getSetting("GALT_PASSWORD"),
+  DealerNumber: await getSetting("GALT_DEALER_NUMBER"),
 });
 
 const galtFetch = async (endpoint, payload) => {
-  const baseUrl = process.env.GALT_API_BASE_URL;
+  const baseUrl = await getSetting("GALT_API_BASE_URL");
   if (!baseUrl) throw new Error("Galt API Base URL is not configured.");
 
-  const fullPayload = { ...payload, ...getGaltCredentials() };
+  const creds = await getGaltCredentials();
+  const fullPayload = { ...payload, ...creds };
   const authHeader =
     "Basic " +
     Buffer.from(
-      process.env.GALT_USERNAME + ":" + process.env.GALT_PASSWORD,
+      creds.Username + ":" + creds.Password,
     ).toString("base64");
 
   // console.log("[GALT] POST", endpoint, JSON.stringify(fullPayload));

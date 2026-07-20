@@ -1,44 +1,47 @@
-﻿import React, { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   BrowserRouter as Router,
   Routes,
   Route,
+  Link,
   useSearchParams,
 } from "react-router-dom";
 import { FlowProvider } from "./context/FlowContext";
 import { AuthProvider, useAuth, apiClient } from "./context/AuthContext";
 import Wizard from "./pages/Wizard";
 import PaymentStatus from "./pages/PaymentStatus";
+import AdminSettings from "./pages/AdminSettings";
 import {
   LogOut,
   Waves,
   CheckCircle2,
   XCircle,
   ChevronDown,
+  Settings,
 } from "lucide-react";
 
 const Header = () => {
   const { isAuthenticated, user, logout } = useAuth();
-  const [qboConnected, setQboConnected] = useState(false);
-  const [qboLoading, setQboLoading] = useState(false);
+  const [health, setHealth] = useState(null);
+  const [healthLoading, setHealthLoading] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
   useEffect(() => {
     if (!isAuthenticated || user?.role !== "admin") return;
 
-    const checkQboStatus = async () => {
-      setQboLoading(true);
+    const checkHealth = async () => {
+      setHealthLoading(true);
       try {
-        const res = await apiClient.get("/qbo/status");
-        setQboConnected(res.data.connected);
+        const res = await apiClient.get("/admin/system-status");
+        setHealth(res.data);
       } catch (err) {
-        console.error("Failed to fetch QBO status:", err);
+        console.error("Failed to fetch system status:", err);
       } finally {
-        setQboLoading(false);
+        setHealthLoading(false);
       }
     };
 
-    checkQboStatus();
+    checkHealth();
   }, [isAuthenticated, user]);
 
   useEffect(() => {
@@ -55,14 +58,10 @@ const Header = () => {
 
   if (!isAuthenticated) return null;
 
-  const handleQboConnect = () => {
-    window.location.href = `${import.meta.env.VITE_API_URL || "http://localhost:5000/api"}/qbo/connect`;
-  };
-
   return (
     <header className="w-full mb-6 mx-auto select-none">
       <div className="flex flex-row justify-between gap-4 w-full pb-3 border-b border-slate-200/50 md:border-none">
-        {/* Left Side: Logo & QuickBooks Connection Status */}
+        {/* Left Side: Logo & System Health Notice */}
         <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
           {/* Logo */}
           <div className="flex items-center">
@@ -73,24 +72,34 @@ const Header = () => {
             />
           </div>
 
-          {/* QuickBooks connection badge */}
+          {/* System Integration Notice for Admin */}
           {isAuthenticated && user?.role === "admin" && (
-            <div className="inline-flex items-center gap-2 self-start sm:self-auto px-3 py-1.5 rounded-full bg-white/70 border border-slate-200 shadow-xs text-xs font-bold transition-all">
-              <span
-                className={`w-2 h-2 rounded-full ${qboConnected ? "bg-emerald-500 animate-pulse" : "bg-rose-500"}`}
-              />
-              <span className="text-slate-650">QuickBooks:</span>
-              {qboLoading ? (
-                <span className="text-slate-400 font-medium">Checking...</span>
-              ) : qboConnected ? (
-                <span className="text-emerald-700">Connected</span>
-              ) : (
-                <button
-                  onClick={handleQboConnect}
-                  className="text-brand-600 hover:text-brand-800 underline decoration-dotted cursor-pointer"
+            <div className="flex items-center">
+              {healthLoading ? (
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/70 border border-slate-200 shadow-xs text-xs font-medium text-slate-400">
+                  <span className="w-2 h-2 rounded-full bg-slate-300 animate-ping" />
+                  Checking status...
+                </div>
+              ) : health?.allOk ? (
+                <Link
+                  to="/admin/settings"
+                  className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50/80 border border-emerald-200 shadow-xs text-xs font-bold text-emerald-800 hover:bg-emerald-100 transition-all cursor-pointer"
                 >
-                  Connect QBO
-                </button>
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span>All Integrations Active</span>
+                </Link>
+              ) : (
+                <Link
+                  to="/admin/settings"
+                  className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-50 border border-amber-300 shadow-xs text-xs font-bold text-amber-900 hover:bg-amber-100 transition-all cursor-pointer animate-in fade-in duration-200"
+                >
+                  <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse shrink-0" />
+                  <span className="truncate max-w-[280px]">
+                    {health?.unconfiguredCount === 1
+                      ? `Notice: ${health.unconfiguredServices[0]} Disconnected`
+                      : `Notice: ${health?.unconfiguredCount || 1} Services Require Setup`}
+                  </span>
+                </Link>
               )}
             </div>
           )}
@@ -136,6 +145,18 @@ const Header = () => {
                     {user?.role}
                   </p>
                 </div>
+
+                {user?.role === "admin" && (
+                  <Link
+                    to="/admin/settings"
+                    onClick={() => setDropdownOpen(false)}
+                    className="w-full flex items-center gap-2.5 px-3 py-2.5 text-xs font-bold text-slate-700 hover:text-brand-700 hover:bg-brand-50 rounded-xl transition-all cursor-pointer border-b border-slate-100 mb-1"
+                  >
+                    <Settings className="w-4 h-4 text-brand-600" />
+                    Admin Settings
+                  </Link>
+                )}
+
                 <button
                   onClick={() => {
                     setDropdownOpen(false);
@@ -221,6 +242,10 @@ function App() {
                   <Route
                     path="/payment-status/:contractId"
                     element={<PaymentStatus />}
+                  />
+                  <Route
+                    path="/admin/settings"
+                    element={<AdminSettings />}
                   />
                 </Routes>
               </main>

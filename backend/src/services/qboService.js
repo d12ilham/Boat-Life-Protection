@@ -1,7 +1,19 @@
 import db from '../config/db.js';
+import { getSetting } from '../config/configResolver.js';
 
 let cachedEndpoints = null;
 let cacheExpiry = 0;
+
+/**
+ * Helper to capture and log Intuit Transaction ID header (intuit_tid)
+ */
+export const logIntuitTid = (res, contextName = 'QBO API') => {
+  if (!res || !res.headers) return;
+  const tid = res.headers.get('intuit_tid') || res.headers.get('intuit-tid');
+  if (tid) {
+    console.log(`[QBO Service] Intuit Transaction ID (${contextName}): ${tid}`);
+  }
+};
 
 export const getDiscoveryEndpoints = async () => {
   // Cache endpoints for 1 hour to prevent redundant network requests
@@ -9,7 +21,7 @@ export const getDiscoveryEndpoints = async () => {
     return cachedEndpoints;
   }
 
-  const env = process.env.QBO_ENVIRONMENT || 'sandbox';
+  const env = await getSetting('QBO_ENVIRONMENT', 'sandbox');
   const discoveryUrl = env === 'production'
     ? 'https://developer.intuit.com/.well-known/openid_configuration'
     : 'https://developer.intuit.com/.well-known/openid_sandbox_configuration';
@@ -17,6 +29,7 @@ export const getDiscoveryEndpoints = async () => {
   console.log(`[QBO Service] Fetching Discovery Document from: ${discoveryUrl}`);
   try {
     const res = await fetch(discoveryUrl);
+    logIntuitTid(res, 'Discovery Document');
     if (res.ok) {
       const config = await res.json();
       if (config.authorization_endpoint && config.token_endpoint) {
@@ -41,8 +54,8 @@ export const getDiscoveryEndpoints = async () => {
   };
 };
 
-const getQboBaseUrl = () => {
-  const env = process.env.QBO_ENVIRONMENT || 'sandbox';
+const getQboBaseUrl = async () => {
+  const env = await getSetting('QBO_ENVIRONMENT', 'sandbox');
   return env === 'production' 
     ? 'https://quickbooks.api.intuit.com' 
     : 'https://sandbox-quickbooks.api.intuit.com';
@@ -53,11 +66,11 @@ const getQboBaseUrl = () => {
  */
 export const refreshQboToken = async (currentRefreshToken) => {
   console.log('[QBO Service] Refreshing QuickBooks access token...');
-  const clientId = process.env.QBO_CLIENT_ID;
-  const clientSecret = process.env.QBO_CLIENT_SECRET;
+  const clientId = await getSetting('QBO_CLIENT_ID');
+  const clientSecret = await getSetting('QBO_CLIENT_SECRET');
   
   if (!clientId || !clientSecret) {
-    throw new Error('QuickBooks Client ID or Client Secret is missing in environment variables.');
+    throw new Error('QuickBooks Client ID or Client Secret is missing in settings.');
   }
 
   const credentials = `${clientId}:${clientSecret}`;
@@ -76,6 +89,8 @@ export const refreshQboToken = async (currentRefreshToken) => {
       refresh_token: currentRefreshToken
     })
   });
+
+  logIntuitTid(response, 'Token Refresh');
 
   if (!response.ok) {
     const errText = await response.text();

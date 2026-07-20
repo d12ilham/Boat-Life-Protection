@@ -1,10 +1,10 @@
 import db from '../config/db.js';
-import { getDiscoveryEndpoints } from '../services/qboService.js';
+import { getDiscoveryEndpoints, logIntuitTid } from '../services/qboService.js';
+import { getSetting } from '../config/configResolver.js';
 
 export const connectQBO = async (req, res) => {
-  const clientId = process.env.QBO_CLIENT_ID;
-  const redirectUri = process.env.QBO_REDIRECT_URI;
-  const env = process.env.QBO_ENVIRONMENT || 'sandbox';
+  const clientId = await getSetting('QBO_CLIENT_ID');
+  const redirectUri = await getSetting('QBO_REDIRECT_URI');
 
   if (!clientId || !redirectUri) {
     return res.status(500).send('QuickBooks Client ID or Redirect URI is not configured.');
@@ -35,10 +35,10 @@ export const callbackQBO = async (req, res) => {
     return res.status(400).send('Authorization code or Realm ID is missing.');
   }
 
-  const clientId = process.env.QBO_CLIENT_ID;
-  const clientSecret = process.env.QBO_CLIENT_SECRET;
-  const redirectUri = process.env.QBO_REDIRECT_URI;
-  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+  const clientId = await getSetting('QBO_CLIENT_ID');
+  const clientSecret = await getSetting('QBO_CLIENT_SECRET');
+  const redirectUri = await getSetting('QBO_REDIRECT_URI');
+  const frontendUrl = (await getSetting('FRONTEND_URL')) || process.env.FRONTEND_URL || 'http://localhost:5173';
 
   if (!clientId || !clientSecret || !redirectUri) {
     return res.status(500).send('QuickBooks API variables are not fully configured.');
@@ -62,6 +62,8 @@ export const callbackQBO = async (req, res) => {
         redirect_uri: redirectUri
       })
     });
+
+    logIntuitTid(response, 'OAuth Code Exchange');
 
     if (!response.ok) {
       const errText = await response.text();

@@ -1,8 +1,25 @@
 import Stripe from "stripe";
 import db from "../config/db.js";
 import { triggerAllAutomations } from "../services/integrationService.js";
+import { getSetting } from "../config/configResolver.js";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "sk_test_dummy");
+async function getStripeInstance() {
+  const secretKey = await getSetting("STRIPE_SECRET_KEY", "sk_test_dummy");
+  return new Stripe(secretKey);
+}
+
+/**
+ * Return active Stripe Publishable Key for frontend initialization
+ */
+export const getStripeConfig = async (req, res) => {
+  try {
+    const pubKey = (await getSetting("STRIPE_PUBLISHABLE_KEY")) || process.env.VITE_STRIPE_PUB_KEY || process.env.STRIPE_PUBLISHABLE_KEY || "";
+    res.json({ publishableKey: pubKey });
+  } catch (err) {
+    console.error("Error fetching Stripe config:", err);
+    res.status(500).json({ message: "Error loading Stripe configuration" });
+  }
+};
 
 /**
  * @swagger
@@ -48,6 +65,7 @@ export const createPaymentIntent = async (req, res) => {
     const chargeAmount = isDev ? 100 : Math.round(amount * 100);
 
     // Create PaymentIntent
+    const stripe = await getStripeInstance();
     const paymentIntent = await stripe.paymentIntents.create({
       amount: chargeAmount,
       currency: "usd",
@@ -68,7 +86,8 @@ export const createPaymentIntent = async (req, res) => {
 export const stripeWebhook = async (req, res) => {
   const sig = req.headers["stripe-signature"];
   let event;
-  const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET || "whsec_dummy";
+  const endpointSecret = await getSetting("STRIPE_WEBHOOK_SECRET", "whsec_dummy");
+  const stripe = await getStripeInstance();
 
   console.log("Payment webhook received");
 
