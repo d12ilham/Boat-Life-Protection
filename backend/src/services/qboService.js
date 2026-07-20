@@ -140,7 +140,7 @@ export const getValidQboToken = async () => {
  * Search for a customer by email in QBO. If not found, create a new one.
  */
 const getOrCreateQboCustomer = async (accessToken, realmId, customer) => {
-  const baseUrl = getQboBaseUrl();
+  const baseUrl = await getQboBaseUrl();
   const email = customer.email;
   
   if (!email) {
@@ -214,7 +214,7 @@ const getOrCreateQboCustomer = async (accessToken, realmId, customer) => {
  * Helper to get a revenue account for item creation fallback.
  */
 const getIncomeAccountRef = async (accessToken, realmId) => {
-  const baseUrl = getQboBaseUrl();
+  const baseUrl = await getQboBaseUrl();
   const query = `select * from Account where Classification = 'Revenue'`;
   const url = `${baseUrl}/v3/company/${realmId}/query?query=${encodeURIComponent(query)}&minorversion=75`;
 
@@ -248,7 +248,7 @@ const getIncomeAccountRef = async (accessToken, realmId) => {
  * Search for an Item in QBO by service plan name. If not found, create a new Service item.
  */
 const getOrCreateQboItem = async (accessToken, realmId, planName) => {
-  const baseUrl = getQboBaseUrl();
+  const baseUrl = await getQboBaseUrl();
   const cleanPlanName = (planName || 'Boat Lift Service Contract').trim();
 
   // Search by Item Name
@@ -321,7 +321,7 @@ export const createQboInvoice = async (customer, contract, paymentIntent) => {
   }
 
   const { accessToken, realmId } = tokenData;
-  const baseUrl = getQboBaseUrl();
+  const baseUrl = await getQboBaseUrl();
 
   try {
     // 1. Resolve Customer
