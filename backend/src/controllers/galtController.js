@@ -22,9 +22,7 @@ const galtFetch = async (endpoint, payload) => {
   const fullPayload = { ...payload, ...creds };
   const authHeader =
     "Basic " +
-    Buffer.from(
-      creds.Username + ":" + creds.Password,
-    ).toString("base64");
+    Buffer.from(creds.Username + ":" + creds.Password).toString("base64");
 
   // console.log("[GALT] POST", endpoint, JSON.stringify(fullPayload));
 
@@ -160,7 +158,7 @@ export const submitFullApp = async (req, res) => {
     };
 
     const rateResult = await galtFetch("/rateymm.aspx", ratePayload);
-    // console.log("[GALT] Rate response:", JSON.stringify(rateResult.data));
+    console.log("[GALT] Rate response:", JSON.stringify(rateResult.data));
 
     // Extract rate data â€” GALT returns an envelope containing "Premiums" array
     let chosenRate = null;
@@ -212,19 +210,19 @@ export const submitFullApp = async (req, res) => {
     }
 
     if (!chosenRate) {
-      console.warn(
-        "[GALT] Rate call returned no usable rate. Proceeding with fallback values.",
-      );
-      chosenRate = {
-        ProductID: expectedProductId,
-        Coverage: Coverage,
-        TermMonths: expectedTermMonths,
-        Deductible: 0,
-        DealerCost:
-          expectedProductId === 102
-            ? 1260.0
-            : parseFloat(RetailPrice) * 0.75 || 1000.0, // Sensible dev fallback to prevent Missing Dealer Cost errors
-      };
+      const galtErrors =
+        rateResult.data?.Errors || rateResult.data?.errors || null;
+      const errorMsg =
+        Array.isArray(galtErrors) && galtErrors.length > 0
+          ? `Galt rate call failed: ${galtErrors.map((e) => e.Description || e.description || JSON.stringify(e)).join(", ")}`
+          : `Galt rate call returned no usable rate for ProductID ${expectedProductId} (${ProductType}) under the requested parameters (Make: "${Make}", Model: "${Model}", Year: "${Year}", Coverage: "${Coverage}").`;
+
+      console.error(`[GALT] ${errorMsg}`, JSON.stringify(rateResult.data));
+      return res.status(400).json({
+        message: errorMsg,
+        errors: galtErrors,
+        _galtRawResponse: rateResult.data,
+      });
     }
 
     // â”€â”€ Step B: App submission â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -294,7 +292,8 @@ export const submitFullApp = async (req, res) => {
     if (appResult.ok && appResult.data && contractId) {
       const appData = appResult.data.App || appResult.data;
       const pdfBase64 = appData.PDF || appResult.data.PDF;
-      const galtContractNo = appData.ContractNo || appResult.data.ContractNo || null;
+      const galtContractNo =
+        appData.ContractNo || appResult.data.ContractNo || null;
       const signatures = appData.Signatures || appResult.data.Signatures || [];
 
       let savedPdfUrl = null;
@@ -313,10 +312,7 @@ export const submitFullApp = async (req, res) => {
             `[GALT] Saved PDF for contract ${contractId} to ${savedPdfUrl}`,
           );
         } catch (saveErr) {
-          console.error(
-            "[GALT] Failed to save GALT PDF:",
-            saveErr,
-          );
+          console.error("[GALT] Failed to save GALT PDF:", saveErr);
         }
       }
 
@@ -325,7 +321,12 @@ export const submitFullApp = async (req, res) => {
         [savedPdfUrl, JSON.stringify(signatures), galtContractNo, contractId],
       );
     } else if (contractId) {
-      await db.query("UPDATE contracts SET galt_sync_status = 'failed' WHERE id = $1", [contractId]).catch(console.error);
+      await db
+        .query(
+          "UPDATE contracts SET galt_sync_status = 'failed' WHERE id = $1",
+          [contractId],
+        )
+        .catch(console.error);
     }
 
     // Attach the rate data to response for context
@@ -338,7 +339,12 @@ export const submitFullApp = async (req, res) => {
   } catch (error) {
     console.error("Error in submitFullApp:", error);
     if (req.body.contractId) {
-      await db.query("UPDATE contracts SET galt_sync_status = 'failed' WHERE id = $1", [req.body.contractId]).catch(console.error);
+      await db
+        .query(
+          "UPDATE contracts SET galt_sync_status = 'failed' WHERE id = $1",
+          [req.body.contractId],
+        )
+        .catch(console.error);
     }
     return res.status(500).json({
       message: "Failed to complete GALT application flow",
