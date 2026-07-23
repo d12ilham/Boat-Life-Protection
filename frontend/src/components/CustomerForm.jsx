@@ -130,6 +130,9 @@ const CustomerForm = ({ onNext, onBack }) => {
     if (name === "year") {
       value = value.replace(/\D/g, "").slice(0, 4);
     }
+    if (name === "serial_number") {
+      value = value.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+    }
     setFormData((prev) => {
       const updated = { ...prev, [name]: value };
       if (name === "date_of_sale") {

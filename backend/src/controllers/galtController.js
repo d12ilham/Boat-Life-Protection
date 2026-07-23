@@ -19,7 +19,17 @@ const galtFetch = async (endpoint, payload) => {
   if (!baseUrl) throw new Error("Galt API Base URL is not configured.");
 
   const creds = await getGaltCredentials();
-  const fullPayload = { ...payload, ...creds };
+  
+  // Sanitize VIN parameter for Galt API endpoints (strip spaces/special chars and convert to uppercase)
+  const sanitizedPayload = { ...payload };
+  if (sanitizedPayload.VIN) {
+    sanitizedPayload.VIN = String(sanitizedPayload.VIN).replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+  }
+  if (sanitizedPayload.vin) {
+    sanitizedPayload.vin = String(sanitizedPayload.vin).replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+  }
+
+  const fullPayload = { ...sanitizedPayload, ...creds };
   const authHeader =
     "Basic " +
     Buffer.from(creds.Username + ":" + creds.Password).toString("base64");

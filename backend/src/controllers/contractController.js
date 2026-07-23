@@ -90,7 +90,7 @@ export const initCustomerAndContract = async (req, res) => {
         req.body.technician_name,
         contract.service_plan,
         finalAmount,
-        contract.serial_number,
+        contract.serial_number ? String(contract.serial_number).replace(/[^a-zA-Z0-9]/g, "").toUpperCase() : null,
         contract.year ? parseInt(contract.year) : null,
         contract.make,
         contract.model,
