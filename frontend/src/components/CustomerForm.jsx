@@ -126,7 +126,10 @@ const CustomerForm = ({ onNext, onBack }) => {
   const [techName, setTechName] = useState(technicianName || "");
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
+    let { name, value } = e.target;
+    if (name === "year") {
+      value = value.replace(/\D/g, "").slice(0, 4);
+    }
     setFormData((prev) => {
       const updated = { ...prev, [name]: value };
       if (name === "date_of_sale") {
@@ -684,11 +687,14 @@ const CustomerForm = ({ onNext, onBack }) => {
                     Year <span className="text-red-500">*</span>
                   </label>
                   <input
-                    type="number"
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
                     name="year"
                     required
                     className="input-field"
                     placeholder="2024"
+                    maxLength={4}
                     value={formData.year}
                     onChange={handleChange}
                   />
