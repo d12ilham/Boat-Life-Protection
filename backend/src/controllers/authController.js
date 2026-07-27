@@ -308,6 +308,10 @@ export const deleteUser = async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
+    // Unlink user from existing contracts to prevent foreign key constraint violation
+    await db.query('UPDATE contracts SET technician_id = NULL WHERE technician_id = $1', [id]);
+
+    // Delete user
     await db.query('DELETE FROM users WHERE id = $1', [id]);
     res.json({ message: `User ${check.rows[0].username} deleted successfully` });
   } catch (error) {

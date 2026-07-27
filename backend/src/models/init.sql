@@ -30,7 +30,7 @@ CREATE TABLE IF NOT EXISTS customers (
 CREATE TABLE IF NOT EXISTS contracts (
   id SERIAL PRIMARY KEY,
   customer_id INTEGER REFERENCES customers(id),
-  technician_id INTEGER REFERENCES users(id),
+  technician_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
   service_plan VARCHAR(255) NOT NULL,
   contract_start_date DATE,
   contract_end_date DATE,
