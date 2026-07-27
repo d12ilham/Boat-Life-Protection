@@ -36,22 +36,22 @@ try {
   const hash = await bcrypt.hash(DEFAULT_PASSWORD, 10);
 
   await pool.query(
-    `INSERT INTO users (username, password_hash, role)
-     VALUES ('vendor_admin', $1, 'admin')
-     ON CONFLICT (username) DO UPDATE SET password_hash = $1`,
+    `INSERT INTO users (username, email, password_hash, role)
+     VALUES ('vendor_admin', 'admin@boatliftprotection.com', $1, 'admin')
+     ON CONFLICT (username) DO UPDATE SET password_hash = $1, email = EXCLUDED.email`,
     [hash],
   );
 
   await pool.query(
-    `INSERT INTO users (username, password_hash, role)
-     VALUES ('demo_vendor', $1, 'vendor')
-     ON CONFLICT (username) DO UPDATE SET password_hash = $1`,
+    `INSERT INTO users (username, email, password_hash, role)
+     VALUES ('demo_vendor', 'vendor@boatliftprotection.com', $1, 'vendor')
+     ON CONFLICT (username) DO UPDATE SET password_hash = $1, email = EXCLUDED.email`,
     [hash],
   );
 
   console.log(`✅ Default users seeded:`);
-  console.log(`   - Admin: vendor_admin / ${DEFAULT_PASSWORD}`);
-  console.log(`   - Vendor: demo_vendor / ${DEFAULT_PASSWORD}`);
+  console.log(`   - Admin: vendor_admin (admin@boatliftprotection.com) / ${DEFAULT_PASSWORD}`);
+  console.log(`   - Vendor: demo_vendor (vendor@boatliftprotection.com) / ${DEFAULT_PASSWORD}`);
   console.log("✅ Database initialized successfully.");
 } catch (err) {
   console.error("❌ Failed to initialize database:", err.message);

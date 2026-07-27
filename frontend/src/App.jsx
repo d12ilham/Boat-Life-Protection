@@ -11,6 +11,7 @@ import { AuthProvider, useAuth, apiClient } from "./context/AuthContext";
 import Wizard from "./pages/Wizard";
 import PaymentStatus from "./pages/PaymentStatus";
 import AdminSettings from "./pages/AdminSettings";
+import ResetPassword from "./pages/ResetPassword";
 import {
   LogOut,
   Waves,
@@ -246,6 +247,10 @@ function App() {
                   <Route
                     path="/admin/settings"
                     element={<AdminSettings />}
+                  />
+                  <Route
+                    path="/reset-password"
+                    element={<ResetPassword />}
                   />
                 </Routes>
               </main>

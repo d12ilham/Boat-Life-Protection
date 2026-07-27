@@ -1,6 +1,15 @@
 import express from 'express';
 import jwt from 'jsonwebtoken';
-import { login, refreshToken, logout } from '../controllers/authController.js';
+import { 
+  login, 
+  refreshToken, 
+  logout, 
+  register, 
+  forgotPassword, 
+  resetPassword, 
+  getUsers, 
+  deleteUser 
+} from '../controllers/authController.js';
 import { initCustomerAndContract, signContract, getContract } from '../controllers/contractController.js';
 import { createPaymentIntent, stripeWebhook, getStripeConfig } from '../controllers/paymentController.js';
 import { getRate, submitApp, submitFullApp, getAppPdf, voidApp, checkVin, getStandardRate } from '../controllers/galtController.js';
@@ -41,8 +50,12 @@ export const requireAdmin = (req, res, next) => {
   });
 };
 
-// ── Authentication Routes ─────────────────────────────────────────────────────
+// ── Authentication & User Routes ───────────────────────────────────────────────
 router.post('/login', login);
+router.post('/register', register);
+router.post('/auth/register', register);
+router.post('/auth/forgot-password', forgotPassword);
+router.post('/auth/reset-password', resetPassword);
 router.post('/refresh', refreshToken);
 router.post('/logout', logout);
 
@@ -70,12 +83,16 @@ router.get('/qbo/connect', connectQBO);
 router.get('/qbo/callback', callbackQBO);
 router.get('/qbo/status', requireAuth, getQboStatus);
 
-// -- Admin Settings Routes ------------------------------------------------------
+// -- Admin Settings & User Management Routes -----------------------------------
 router.post('/admin/verify-password', requireAdmin, verifyPassword);
 router.get('/admin/settings', requireAdmin, getAdminSettings);
 router.post('/admin/settings/reveal', requireAdmin, revealSetting);
 router.post('/admin/settings', requireAdmin, updateAdminSettings);
 router.post('/admin/qbo/disconnect', requireAdmin, disconnectQBO);
 router.get('/admin/system-status', requireAdmin, getSystemStatus);
+
+// Admin User Management
+router.get('/admin/users', requireAdmin, getUsers);
+router.delete('/admin/users/:id', requireAdmin, deleteUser);
 
 export default router;

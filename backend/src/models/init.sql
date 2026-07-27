@@ -2,15 +2,20 @@
 CREATE TABLE IF NOT EXISTS users (
   id SERIAL PRIMARY KEY,
   username VARCHAR(255) UNIQUE NOT NULL,
+  email VARCHAR(255) UNIQUE,
   password_hash VARCHAR(255) NOT NULL,
   role VARCHAR(50) DEFAULT 'technician',
   refresh_token TEXT,
+  reset_token TEXT,
+  reset_token_expiry TIMESTAMP,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Add refresh_token column if upgrading from older schema
+-- Add missing columns if upgrading from older schema
 ALTER TABLE users ADD COLUMN IF NOT EXISTS refresh_token TEXT;
-ALTER TABLE users ADD COLUMN IF NOT EXISTS email TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS email VARCHAR(255);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token_expiry TIMESTAMP;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
 
 CREATE TABLE IF NOT EXISTS customers (
