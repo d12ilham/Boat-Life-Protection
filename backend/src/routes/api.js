@@ -52,8 +52,8 @@ export const requireAdmin = (req, res, next) => {
 
 // ── Authentication & User Routes ───────────────────────────────────────────────
 router.post('/login', login);
-router.post('/register', register);
-router.post('/auth/register', register);
+router.post('/register', requireAdmin, register);
+router.post('/auth/register', requireAdmin, register);
 router.post('/auth/forgot-password', forgotPassword);
 router.post('/auth/reset-password', resetPassword);
 router.post('/refresh', refreshToken);
@@ -93,6 +93,7 @@ router.get('/admin/system-status', requireAdmin, getSystemStatus);
 
 // Admin User Management
 router.get('/admin/users', requireAdmin, getUsers);
+router.post('/admin/users', requireAdmin, register);
 router.delete('/admin/users/:id', requireAdmin, deleteUser);
 
 export default router;
