@@ -316,10 +316,11 @@ const ServiceSelection = ({ onNext }) => {
     liftType && liftCategoryIndex !== ""
       ? selectedCategories[parseInt(liftCategoryIndex)]
       : null;
-  const isCustomQuote = !isNewLiftServiceContract && selectedCat?.retailPrice === "Custom Quote";
 
   const isNewLiftServiceContract =
     selectedPlanId === "service_contract" && vehicleStatus === "NEW";
+
+  const isCustomQuote = !isNewLiftServiceContract && selectedCat?.retailPrice === "Custom Quote";
 
   const parsedLiftCost = parseFloat(liftCost) || 0;
   const isLiftCostValid = parsedLiftCost > 0;
