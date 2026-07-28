@@ -282,6 +282,9 @@ const ServiceSelection = ({ onNext }) => {
   const [selectedPlanId, setSelectedPlanId] = useState(servicePlan?.id || "");
   const [liftType, setLiftType] = useState(servicePlan?.liftType || "");
   const [liftCategoryIndex, setLiftCategoryIndex] = useState("");
+  const [liftCost, setLiftCost] = useState(
+    servicePlan?.liftCost || servicePlan?.vehicleSalePrice || "",
+  );
   const [vehicleStatus, setVehicleStatus] = useState(
     servicePlan?.vehicleStatus || "",
   );
@@ -313,7 +316,13 @@ const ServiceSelection = ({ onNext }) => {
     liftType && liftCategoryIndex !== ""
       ? selectedCategories[parseInt(liftCategoryIndex)]
       : null;
-  const isCustomQuote = selectedCat?.retailPrice === "Custom Quote";
+  const isCustomQuote = !isNewLiftServiceContract && selectedCat?.retailPrice === "Custom Quote";
+
+  const isNewLiftServiceContract =
+    selectedPlanId === "service_contract" && vehicleStatus === "NEW";
+
+  const parsedLiftCost = parseFloat(liftCost) || 0;
+  const isLiftCostValid = parsedLiftCost > 0;
 
   // Validation
   const coverageValid =
@@ -323,18 +332,45 @@ const ServiceSelection = ({ onNext }) => {
         ? !!coverage && !!contractType
         : false;
 
-  const isContinueDisabled =
-    !selectedPlanId ||
-    !vehicleStatus ||
-    !coverageValid ||
-    !selectedCat ||
-    isCustomQuote;
+  const isContinueDisabled = isNewLiftServiceContract
+    ? !selectedPlanId ||
+      !vehicleStatus ||
+      !coverageValid ||
+      !liftType ||
+      !isLiftCostValid
+    : !selectedPlanId ||
+      !vehicleStatus ||
+      !coverageValid ||
+      !selectedCat ||
+      isCustomQuote;
 
   const handleContinue = () => {
     // Reset inspection gate whenever we start a new flow
     setInspectionPassed(false);
 
-    if (selectedPlanId === "maintenance" && selectedCat && !isCustomQuote) {
+    if (isNewLiftServiceContract && isLiftCostValid) {
+      const base15 = Math.round(parsedLiftCost * 0.15 * 100) / 100;
+      const addonFee = coverage === "Platinum" ? 500 : 0;
+      const finalPrice = base15 + addonFee;
+
+      setServicePlan({
+        id: "service_contract",
+        productId: 103,
+        name: "Boat Lift Service Contract (ESC)",
+        price: finalPrice,
+        months: 60,
+        vehicleStatus: "NEW",
+        coverage, // "Gold" | "Platinum"
+        contractType, // "Post" | "Lean To"
+        liftType,
+        liftCategory: selectedCat ? selectedCat.category : "New Lift Pricing (15%)",
+        weightRange: selectedCat ? selectedCat.weightRange : "N/A",
+        vehicleSalePrice: parsedLiftCost,
+        retailPrice: finalPrice,
+        liftCost: parsedLiftCost,
+      });
+      onNext();
+    } else if (selectedPlanId === "maintenance" && selectedCat && !isCustomQuote) {
       setServicePlan({
         id: "maintenance",
         productId: 102,
@@ -376,16 +412,23 @@ const ServiceSelection = ({ onNext }) => {
     }
   };
 
-  const calculatedPrice = selectedCat
-    ? selectedPlanId === "maintenance"
-      ? 3000
-      : selectedCat.retailPrice === "Custom Quote"
-        ? "Custom Quote"
-        : selectedCat.retailPrice +
-          (selectedPlanId === "service_contract" && coverage === "Platinum"
-            ? 500
-            : 0)
-    : 0;
+  let calculatedPrice = 0;
+  if (isNewLiftServiceContract) {
+    if (isLiftCostValid) {
+      const base15 = Math.round(parsedLiftCost * 0.15 * 100) / 100;
+      const addonFee = coverage === "Platinum" ? 500 : 0;
+      calculatedPrice = base15 + addonFee;
+    }
+  } else if (selectedCat) {
+    if (selectedPlanId === "maintenance") {
+      calculatedPrice = 3000;
+    } else if (selectedCat.retailPrice === "Custom Quote") {
+      calculatedPrice = "Custom Quote";
+    } else {
+      const addonFee = coverage === "Platinum" ? 500 : 0;
+      calculatedPrice = selectedCat.retailPrice + addonFee;
+    }
+  }
 
   const isUsed = vehicleStatus === "USED";
   const finalCalculatedPrice = calculatedPrice;
@@ -615,43 +658,137 @@ const ServiceSelection = ({ onNext }) => {
               LIFT DETAILS
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <CustomDropdown
-                  label="Lift type"
-                  value={liftType}
-                  onChange={(val) => {
-                    setLiftType(val);
-                    setLiftCategoryIndex("");
-                  }}
-                  options={liftTypeOptions}
-                  placeholder="-- Choose Lift Type --"
-                  required
-                />
+            {isNewLiftServiceContract ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <CustomDropdown
+                    label="Lift type"
+                    value={liftType}
+                    onChange={(val) => {
+                      setLiftType(val);
+                      setLiftCategoryIndex("");
+                    }}
+                    options={liftTypeOptions}
+                    placeholder="-- Choose Lift Type --"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2.5">
+                  <label className="block text-sm font-bold text-slate-800">
+                    LIFT COST ($) <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-500 font-bold">
+                      $
+                    </span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="any"
+                      placeholder="e.g. 20000"
+                      value={liftCost}
+                      onChange={(e) => setLiftCost(e.target.value)}
+                      className="w-full rounded-2xl border-2 border-slate-300 pl-9 pr-4 py-3.5 bg-white font-bold text-slate-800 text-left transition-all duration-200 focus:border-brand-500 focus:ring-4 focus:ring-brand-500/5 focus:outline-none"
+                    />
+                  </div>
+                  <p className="text-xs text-slate-500 font-medium">
+                    Service contract pricing for New Lifts is calculated at 15% of total lift cost.
+                  </p>
+                </div>
               </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <CustomDropdown
+                    label="Lift type"
+                    value={liftType}
+                    onChange={(val) => {
+                      setLiftType(val);
+                      setLiftCategoryIndex("");
+                    }}
+                    options={liftTypeOptions}
+                    placeholder="-- Choose Lift Type --"
+                    required
+                  />
+                </div>
 
-              <div>
-                <CustomDropdown
-                  label="Lift category"
-                  value={liftCategoryIndex}
-                  onChange={setLiftCategoryIndex}
-                  options={liftCategoryOptions}
-                  placeholder="-- Choose Category --"
-                  disabled={!liftType}
-                  required
-                />
+                <div>
+                  <CustomDropdown
+                    label="Lift category"
+                    value={liftCategoryIndex}
+                    onChange={setLiftCategoryIndex}
+                    options={liftCategoryOptions}
+                    placeholder="-- Choose Category --"
+                    disabled={!liftType}
+                    required
+                  />
+                </div>
               </div>
-            </div>
+            )}
 
-            <p className="text-sm text-slate-700 mt-1">
-              Category determines the contract price based on lift weight
-              capacity.
-            </p>
+            {!isNewLiftServiceContract && (
+              <p className="text-sm text-slate-700 mt-1">
+                Category determines the contract price based on lift weight capacity.
+              </p>
+            )}
 
-            {/* Pricing Confirmed Banner Card */}
-            {selectedCat && !isCustomQuote && (
+            {/* Pricing Confirmed Banner Card for New Lift */}
+            {isNewLiftServiceContract && isLiftCostValid && (
               <div className="animate-in zoom-in-95 duration-200 bg-[#E3F9E9] border-2 border-[#A3E5B7] p-5 rounded-2xl shadow-sm space-y-4">
-                <div className="flex items-center gap-2 text-[#0A5C28] text-sm">
+                <div className="flex items-center gap-2 text-[#0A5C28] text-sm font-bold">
+                  <CheckCircle2 className="w-4.5 h-4.5" />
+                  Pricing calculated — 15% of Lift Cost {coverage === "Platinum" && "(+ $500 Platinum Coverage)"}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Contract Price white card */}
+                  <div className="bg-white border border-slate-200 rounded-xl p-4 flex flex-col justify-between shadow-xs">
+                    <div>
+                      <span className="text-xs font-bold text-slate-700 uppercase tracking-wider block">
+                        CONTRACT PRICE (15% {coverage === "Platinum" ? "+ $500" : ""})
+                      </span>
+                      <span className="text-2xl font-extrabold text-slate-900 mt-1 block">
+                        ${finalCalculatedPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                      <span className="text-xs text-slate-600 font-bold block mt-0.5">
+                        charged to customer
+                      </span>
+                    </div>
+                    <div className="mt-3">
+                      <span className="inline-block bg-brand-50 border border-brand-200 text-brand-700 font-mono text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider">
+                        RetailPrice → API
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Lift Cost white card */}
+                  <div className="bg-white border border-slate-200 rounded-xl p-4 flex flex-col justify-between shadow-xs">
+                    <div>
+                      <span className="text-xs font-bold text-slate-700 uppercase tracking-wider block">
+                        TOTAL LIFT COST
+                      </span>
+                      <span className="text-2xl font-extrabold text-slate-900 mt-1 block">
+                        ${parsedLiftCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                      <span className="text-xs text-slate-600 font-bold block mt-0.5">
+                        entered lift cost
+                      </span>
+                    </div>
+                    <div className="mt-3">
+                      <span className="inline-block bg-brand-50 border border-brand-200 text-brand-700 font-mono text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider">
+                        VehicleSalePrice → API
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Standard Pricing Confirmed Banner Card */}
+            {!isNewLiftServiceContract && selectedCat && !isCustomQuote && (
+              <div className="animate-in zoom-in-95 duration-200 bg-[#E3F9E9] border-2 border-[#A3E5B7] p-5 rounded-2xl shadow-sm space-y-4">
+                <div className="flex items-center gap-2 text-[#0A5C28] text-sm font-bold">
                   <CheckCircle2 className="w-4.5 h-4.5" />
                   Pricing confirmed — values auto-populated
                 </div>
