@@ -165,23 +165,6 @@ function deriveRenewalAlertDate(contractEndDate) {
   }
 }
 
-/**
- * Calculate a date offset by a given number of months.
- */
-function addMonths(dateStr, months) {
-  if (!dateStr) return null;
-  try {
-    const d = new Date(dateStr);
-    if (isNaN(d.getTime())) return null;
-    const year = d.getUTCFullYear();
-    const month = d.getUTCMonth();
-    const day = d.getUTCDate();
-    const result = new Date(Date.UTC(year, month + months, day));
-    return result.toISOString().split("T")[0];
-  } catch {
-    return null;
-  }
-}
 
 /**
  * Derive the plan type in the format required by HubSpot dropdown:
@@ -291,9 +274,6 @@ export async function syncToHubSpot(customer, contract) {
 
   const renewalAlertDate = deriveRenewalAlertDate(contract.contract_end_date);
 
-  const servicePlan = contract.service_plan || "";
-  const isPmp = servicePlan.toLowerCase().includes("pmp") || servicePlan.toLowerCase().includes("maintenance");
-
   const pipelineId = (await getSetting("HUBSPOT_PIPELINE_ID")) || process.env.HUBSPOT_PIPELINE_ID || "default";
   const ownerId = (await getSetting("HUBSPOT_OWNER_ID")) || process.env.HUBSPOT_OWNER_ID;
 
@@ -324,13 +304,6 @@ export async function syncToHubSpot(customer, contract) {
         }
       : {}),
     ...(renewalAlertDate ? { blp_renewal_alert_date: renewalAlertDate } : {}),
-
-    ...(isPmp
-      ? {
-          blp_6_months_service_date: addMonths(saleDate, 6),
-          blp_12_months_service_date: addMonths(saleDate, 12),
-        }
-      : {}),
 
     ...(contract.stripe_payment_id
       ? { blp_stripe_payment_id: contract.stripe_payment_id }
