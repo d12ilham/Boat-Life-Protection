@@ -221,7 +221,7 @@ const CustomerForm = ({ onNext, onBack }) => {
           vehicle_sale_price: servicePlan.vehicleSalePrice
             ? parseFloat(servicePlan.vehicleSalePrice)
             : 0.0,
-          retail_price: finalPriceWithTax,
+          retail_price: basePrice,
           vehicle_status: servicePlan.vehicleStatus || "NEW",
           coverage: servicePlan.coverage,
           contract_type: servicePlan.contractType || null,
