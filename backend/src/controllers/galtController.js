@@ -201,11 +201,19 @@ export const submitFullApp = async (req, res) => {
           );
           dealerCost = parseFloat(rawCost) || 0;
         }
-       // Parse RetailPrice from GALT. This is the filed rate Florida validates against.
-       let retailPrice = 0;
-        if (matchedDeductible && matchedDeductible.RetailPrice !== undefined) {
-          const rawRetail = String(matchedDeductible.RetailPrice).replace(/,/g, "");
+        // Parse RetailPrice from GALT. This is the filed rate Florida validates against.
+        // We use GALT's exact number directly without custom rounding.
+        let retailPrice = 0;
+        const rawGaltRetail =
+          matchedDeductible?.RetailPrice !== undefined
+            ? matchedDeductible.RetailPrice
+            : matchedDeductible?.retailPrice;
+        if (rawGaltRetail !== undefined && rawGaltRetail !== null) {
+          const rawRetail = String(rawGaltRetail).replace(/,/g, "");
           retailPrice = parseFloat(rawRetail) || 0;
+        }
+        if (!retailPrice && RetailPrice) {
+          retailPrice = parseFloat(RetailPrice) || 0;
         }
         chosenRate = {
           ProductID:
@@ -241,7 +249,7 @@ export const submitFullApp = async (req, res) => {
       });
     }
 
-    // â”€â”€ Step B: App submission â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Step B: App submission ──────────────────────────────────────────────
     const appPayload = {
       // Technician
       FIManager: FIManager || "N/A",
@@ -270,7 +278,7 @@ export const submitFullApp = async (req, res) => {
       VehicleSalePrice: parseFloat(VehicleSalePrice) || 0,
       MnfWarrantyLength: parseInt(MnfWarrantyLength) || 0,
 
-      // Fixed â€” lift has no odometer / mileage
+      // Fixed — lift has no odometer / mileage
       CurrentOdometer: 0,
       OdometerType: "no",
       TermMiles: 999999,
@@ -288,7 +296,7 @@ export const submitFullApp = async (req, res) => {
       DealerCost: chosenRate.DealerCost || 0,
       dealerCost: chosenRate.DealerCost || 0,
 
-      // Pricing
+      // Pricing (use GALT filed rate directly)
       RetailPrice: chosenRate.RetailPrice,
 
       // Fixed empty arrays (NOT optional objects)
@@ -304,7 +312,7 @@ export const submitFullApp = async (req, res) => {
     const appResult = await galtFetch("/app.aspx", appPayload);
     // console.log('[GALT] App response:', JSON.stringify(appResult.data, null, 2));
 
-    // If GALT submission is successful, decode and save the PDF
+    // If GALT submission is successful, decode and save the PDF and sync contract pricing
     if (appResult.ok && appResult.data && contractId) {
       const appData = appResult.data.App || appResult.data;
       const pdfBase64 = appData.PDF || appResult.data.PDF;
@@ -332,9 +340,47 @@ export const submitFullApp = async (req, res) => {
         }
       }
 
+      // Read contract tax_rate to recalculate sales tax on GALT's official filed retailPrice
+      const contractRow = await db.query(
+        "SELECT tax_rate FROM contracts WHERE id = $1",
+        [contractId],
+      );
+      const taxRate =
+        contractRow.rows.length > 0 && contractRow.rows[0].tax_rate
+          ? parseFloat(contractRow.rows[0].tax_rate)
+          : 0;
+
+      const finalGaltRetail = chosenRate.RetailPrice || parseFloat(RetailPrice) || 0;
+      const newTaxAmount = Math.round(finalGaltRetail * taxRate * 100) / 100;
+
+      const stripeTestMode = await getSetting("STRIPE_TEST_MODE");
+      const isTestMode =
+        stripeTestMode === "true" ||
+        (stripeTestMode === null &&
+          (process.env.NODE_ENV || "development").toLowerCase() ===
+            "development");
+
+      const newTotalAmount = isTestMode ? 1.0 : finalGaltRetail + newTaxAmount;
+
       await db.query(
-        "UPDATE contracts SET pdf_url = COALESCE($1, pdf_url), galt_signatures = $2, galt_sync_status = 'success', galt_contract_no = $3 WHERE id = $4",
-        [savedPdfUrl, JSON.stringify(signatures), galtContractNo, contractId],
+        `UPDATE contracts 
+         SET pdf_url = COALESCE($1, pdf_url), 
+             galt_signatures = $2, 
+             galt_sync_status = 'success', 
+             galt_contract_no = $3,
+             retail_price = $4,
+             tax_amount = $5,
+             amount = $6
+         WHERE id = $7`,
+        [
+          savedPdfUrl,
+          JSON.stringify(signatures),
+          galtContractNo,
+          finalGaltRetail,
+          newTaxAmount,
+          newTotalAmount,
+          contractId,
+        ],
       );
     } else if (contractId) {
       await db
@@ -345,10 +391,33 @@ export const submitFullApp = async (req, res) => {
         .catch(console.error);
     }
 
-    // Attach the rate data to response for context
+    // Attach the rate data and synced pricing to response for frontend synchronization
+    let syncedPricing = {
+      retailPrice: chosenRate.RetailPrice,
+      taxAmount: 0,
+      taxRate: 0,
+      totalAmount: chosenRate.RetailPrice,
+    };
+    if (contractId) {
+      const updatedRow = await db.query(
+        "SELECT tax_rate, amount, retail_price, tax_amount FROM contracts WHERE id = $1",
+        [contractId],
+      );
+      if (updatedRow.rows.length > 0) {
+        const c = updatedRow.rows[0];
+        syncedPricing = {
+          retailPrice: parseFloat(c.retail_price) || chosenRate.RetailPrice,
+          taxAmount: parseFloat(c.tax_amount) || 0,
+          taxRate: parseFloat(c.tax_rate) || 0,
+          totalAmount: parseFloat(c.amount) || chosenRate.RetailPrice,
+        };
+      }
+    }
+
     const responseBody = {
       ...appResult.data,
       _rateUsed: chosenRate,
+      pricing: syncedPricing,
     };
 
     return res.status(appResult.ok ? 200 : appResult.status).json(responseBody);

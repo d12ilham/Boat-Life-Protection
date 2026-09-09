@@ -175,11 +175,12 @@ const CustomerForm = ({ onNext, onBack }) => {
       // Update flow context for subsequent steps (Payment, Review)
       const updatedPlan = {
         ...servicePlan,
-        price: finalPriceWithTax,
-        retailPrice: finalPriceWithTax,
+        price: basePrice,
+        retailPrice: basePrice,
         taxAmount: taxAmount,
         taxRate: taxRate,
         taxCounty: taxCounty,
+        totalAmount: finalPriceWithTax,
       };
       setServicePlan(updatedPlan);
 
@@ -302,12 +303,39 @@ const CustomerForm = ({ onNext, onBack }) => {
               galtData,
             );
           }
+
+          // Synchronize GALT filed rate into servicePlan state for Payment and Review steps
+          const returnedRetail =
+            galtData?.pricing?.retailPrice !== undefined
+              ? parseFloat(galtData.pricing.retailPrice)
+              : galtData?._rateUsed?.RetailPrice !== undefined
+                ? parseFloat(galtData._rateUsed.RetailPrice)
+                : null;
+
+          if (returnedRetail && returnedRetail > 0) {
+            const syncedTax =
+              galtData?.pricing?.taxAmount !== undefined
+                ? parseFloat(galtData.pricing.taxAmount)
+                : Math.round(returnedRetail * taxRate * 100) / 100;
+            const syncedTotal =
+              galtData?.pricing?.totalAmount !== undefined
+                ? parseFloat(galtData.pricing.totalAmount)
+                : returnedRetail + syncedTax;
+
+            setServicePlan((prev) => ({
+              ...prev,
+              price: returnedRetail,
+              retailPrice: returnedRetail,
+              taxAmount: syncedTax,
+              totalAmount: syncedTotal,
+            }));
+          }
         } catch (galtErr) {
           console.error(
             "[GALT] Error submitting to GALT /galt/submit:",
             galtErr,
           );
-          // Non-fatal â€” we still proceed to contract review with legacy mock
+          // Non-fatal — we still proceed to contract review with legacy mock
         }
       }
 

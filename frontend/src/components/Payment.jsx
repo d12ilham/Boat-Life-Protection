@@ -159,14 +159,20 @@ const Payment = ({ onNext, onBack }) => {
               $
               {isTestMode
                 ? "1.00"
-                : servicePlan?.price?.toLocaleString(undefined, {
+                : (
+                    servicePlan?.totalAmount ??
+                    (servicePlan?.price || 0) + (servicePlan?.taxAmount || 0)
+                  ).toLocaleString(undefined, {
                     minimumFractionDigits: 2,
                     maximumFractionDigits: 2,
                   })}
             </span>
             <div className="mt-4 flex flex-col items-center gap-2">
               <span className="text-xs text-[#2f4269] font-bold bg-white border border-[#D0E2FF] px-4 py-1.5 rounded-xl inline-block shadow-sm">
-                {servicePlan?.name} Base Plan
+                {servicePlan?.name} Base Plan (${servicePlan?.price?.toLocaleString(undefined, {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })})
               </span>
               {!isTestMode && servicePlan?.taxAmount > 0 && (
                 <span className="text-xs text-emerald-800 font-bold bg-[#E3F9E9] border border-[#A3E5B7] px-4 py-1.5 rounded-xl inline-block shadow-sm animate-in fade-in duration-200">
