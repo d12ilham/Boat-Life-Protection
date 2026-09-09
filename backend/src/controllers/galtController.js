@@ -201,7 +201,12 @@ export const submitFullApp = async (req, res) => {
           );
           dealerCost = parseFloat(rawCost) || 0;
         }
-
+       // Parse RetailPrice from GALT. This is the filed rate Florida validates against.
+       let retailPrice = 0;
+        if (matchedDeductible && matchedDeductible.RetailPrice !== undefined) {
+          const rawRetail = String(matchedDeductible.RetailPrice).replace(/,/g, "");
+          retailPrice = parseFloat(rawRetail) || 0;
+        }
         chosenRate = {
           ProductID:
             matchedPremium.ProductId ||
@@ -215,6 +220,7 @@ export const submitFullApp = async (req, res) => {
               : matchedDeductible.number
             : 0,
           DealerCost: dealerCost,
+          RetailPrice: retailPrice,
         };
       }
     }
@@ -283,7 +289,7 @@ export const submitFullApp = async (req, res) => {
       dealerCost: chosenRate.DealerCost || 0,
 
       // Pricing
-      RetailPrice: parseFloat(RetailPrice) || 0,
+      RetailPrice: chosenRate.RetailPrice,
 
       // Fixed empty arrays (NOT optional objects)
       Surcharges: [],
