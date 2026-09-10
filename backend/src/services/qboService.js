@@ -141,13 +141,13 @@ export const getValidQboToken = async () => {
  */
 const getOrCreateQboCustomer = async (accessToken, realmId, customer) => {
   const baseUrl = await getQboBaseUrl();
-  const email = customer.email;
+  const email = (customer.email || '').trim();
   
   if (!email) {
     throw new Error('Customer email is required for QuickBooks synchronization.');
   }
 
-  // Search by Email
+  // 1. Search by PrimaryEmailAddr
   const query = `select * from Customer where PrimaryEmailAddr = '${email.replace(/'/g, "\\'")}'`;
   const searchUrl = `${baseUrl}/v3/company/${realmId}/query?query=${encodeURIComponent(query)}&minorversion=75`;
 
@@ -165,49 +165,110 @@ const getOrCreateQboCustomer = async (accessToken, realmId, customer) => {
 
   const searchData = await searchRes.json();
   if (searchData.QueryResponse && searchData.QueryResponse.Customer && searchData.QueryResponse.Customer.length > 0) {
-    console.log(`[QBO Service] Found existing QBO customer ID: ${searchData.QueryResponse.Customer[0].Id}`);
+    console.log(`[QBO Service] Found existing QBO customer ID by email: ${searchData.QueryResponse.Customer[0].Id}`);
     return searchData.QueryResponse.Customer[0].Id;
   }
 
-  // Create new customer
-  console.log(`[QBO Service] Creating new customer in QBO for: ${customer.first_name} ${customer.last_name}`);
-  const createUrl = `${baseUrl}/v3/company/${realmId}/customer?minorversion=75`;
-  const displayName = `${customer.first_name || ''} ${customer.last_name || ''}`.trim() || customer.name || 'Walk-In Customer';
+  const rawDisplayName = `${customer.first_name || ''} ${customer.last_name || ''}`.trim() || customer.name || 'Walk-In Customer';
 
-  const createRes = await fetch(createUrl, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${accessToken}`,
-      'Content-Type': 'application/json',
-      'Accept': 'application/json'
-    },
-    body: JSON.stringify({
-      DisplayName: displayName,
-      GivenName: customer.first_name || '',
-      FamilyName: customer.last_name || '',
-      PrimaryEmailAddr: {
-        Address: email
-      },
-      PrimaryPhone: {
-        FreeFormNumber: customer.home_phone || customer.phone || ''
-      },
-      BillAddr: {
-        Line1: customer.street_address || customer.address || '',
-        City: customer.city || '',
-        CountrySubDivisionCode: customer.state || '',
-        PostalCode: customer.zip_code || ''
+  // 2. Check if an existing customer has this exact DisplayName
+  try {
+    const nameQuery = `select * from Customer where DisplayName = '${rawDisplayName.replace(/'/g, "\\'")}'`;
+    const nameSearchUrl = `${baseUrl}/v3/company/${realmId}/query?query=${encodeURIComponent(nameQuery)}&minorversion=75`;
+    const nameSearchRes = await fetch(nameSearchUrl, {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Accept': 'application/json'
       }
-    })
-  });
+    });
 
-  if (!createRes.ok) {
-    const errText = await createRes.text();
-    throw new Error(`Failed to create QBO Customer: ${createRes.statusText} - ${errText}`);
+    if (nameSearchRes.ok) {
+      const nameData = await nameSearchRes.json();
+      const existingCust = nameData.QueryResponse?.Customer?.[0];
+      if (existingCust) {
+        const existingEmail = (existingCust.PrimaryEmailAddr?.Address || '').trim();
+        const existingPhone = (existingCust.PrimaryPhone?.FreeFormNumber || '').replace(/\D/g, '');
+        const currentPhone = (customer.home_phone || customer.phone || '').replace(/\D/g, '');
+
+        // If existing record has no email or phone matches, reuse existing QBO customer
+        if (!existingEmail || (currentPhone && existingPhone && existingPhone === currentPhone)) {
+          console.log(`[QBO Service] Found existing QBO customer matching name '${rawDisplayName}' with empty or matching contact details (ID: ${existingCust.Id}). Reusing.`);
+          return existingCust.Id;
+        }
+      }
+    }
+  } catch (nameErr) {
+    console.warn(`[QBO Service] Warning checking existing customer by name:`, nameErr.message);
   }
 
-  const createData = await createRes.json();
-  console.log(`[QBO Service] Created new QBO customer with ID: ${createData.Customer.Id}`);
-  return createData.Customer.Id;
+  // 3. Helper to attempt creating a customer with a given DisplayName
+  const tryCreateCustomer = async (displayNameToUse) => {
+    const createUrl = `${baseUrl}/v3/company/${realmId}/customer?minorversion=75`;
+    const createRes = await fetch(createUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({
+        DisplayName: displayNameToUse,
+        GivenName: customer.first_name || '',
+        FamilyName: customer.last_name || '',
+        PrimaryEmailAddr: {
+          Address: email
+        },
+        PrimaryPhone: {
+          FreeFormNumber: customer.home_phone || customer.phone || ''
+        },
+        BillAddr: {
+          Line1: customer.street_address || customer.address || '',
+          City: customer.city || '',
+          CountrySubDivisionCode: customer.state || '',
+          PostalCode: customer.zip_code || ''
+        }
+      })
+    });
+
+    const rawText = await createRes.text();
+    let data;
+    try {
+      data = JSON.parse(rawText);
+    } catch (e) {
+      data = { rawText };
+    }
+    return { ok: createRes.ok, status: createRes.status, data, rawText };
+  };
+
+  // 4. Attempt creation with standard name
+  console.log(`[QBO Service] Creating new customer in QBO for: ${rawDisplayName}`);
+  let result = await tryCreateCustomer(rawDisplayName.slice(0, 100));
+
+  // 5. If duplicate name exists (Error 6240), differentiate DisplayName and retry
+  if (!result.ok && result.rawText && (result.rawText.includes('6240') || result.rawText.includes('Duplicate Name Exists'))) {
+    const emailSuffix = `(${email})`;
+    const maxLen1 = Math.max(10, 100 - emailSuffix.length - 1);
+    const nameWithEmail = `${rawDisplayName.slice(0, maxLen1)} ${emailSuffix}`.trim();
+
+    console.warn(`[QBO Service] Name '${rawDisplayName}' already exists in QBO (Error 6240). Retrying with '${nameWithEmail}'`);
+    result = await tryCreateCustomer(nameWithEmail);
+
+    if (!result.ok && result.rawText && (result.rawText.includes('6240') || result.rawText.includes('Duplicate Name Exists'))) {
+      const idSuffix = `(#${customer.id || Date.now().toString().slice(-4)})`;
+      const maxLen2 = Math.max(10, 100 - idSuffix.length - 1);
+      const nameWithId = `${rawDisplayName.slice(0, maxLen2)} ${idSuffix}`.trim();
+
+      console.warn(`[QBO Service] Retrying with unique ID suffix: '${nameWithId}'`);
+      result = await tryCreateCustomer(nameWithId);
+    }
+  }
+
+  if (!result.ok) {
+    throw new Error(`Failed to create QBO Customer: ${result.status} - ${result.rawText}`);
+  }
+
+  console.log(`[QBO Service] Created new QBO customer with ID: ${result.data.Customer.Id}`);
+  return result.data.Customer.Id;
 };
 
 /**
