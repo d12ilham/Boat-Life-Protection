@@ -85,7 +85,67 @@ export const submitApp = async (req, res) => {
 };
 
 /**
- * POST /api/galt/submit  â€” orchestrated two-step Rate â†’ App flow
+ * Auto-void previous unpaid GALT applications for a given VIN/serial_number and/or contractId
+ * so that GALT's portal never accumulates duplicate pending applications for the same lift.
+ */
+const autoVoidPreviousGaltApps = async (cleanVin, currentContractId, newApplicationId) => {
+  if (!cleanVin) return;
+
+  try {
+    // Find previous unpaid contracts for this VIN that have an active GALT contract/app
+    const previousApps = await db.query(
+      `SELECT id, galt_application_id, galt_contract_no, status, galt_sync_status 
+       FROM contracts 
+       WHERE (serial_number = $1 OR id = $2)
+         AND status != 'paid'
+         AND (
+           (galt_application_id IS NOT NULL AND galt_application_id != $3)
+           OR (galt_contract_no IS NOT NULL AND id != $2 AND galt_sync_status = 'success')
+         )`,
+      [cleanVin, currentContractId, String(newApplicationId)]
+    );
+
+    for (const row of previousApps.rows) {
+      const oldAppId = row.galt_application_id;
+      const oldContractNo = row.galt_contract_no;
+      console.log(
+        `[GALT Auto-Void] Voiding previous unpaid GALT application (AppID: ${oldAppId}, ContractNo: ${oldContractNo}, ContractDB: #${row.id}) for VIN ${cleanVin}...`
+      );
+
+      try {
+        const voidPayload = {
+          ...(oldAppId ? { ApplicationID: oldAppId } : {}),
+          ...(oldContractNo ? { ContractNo: oldContractNo } : {}),
+          VIN: cleanVin,
+        };
+
+        const voidResult = await galtFetch("/void.aspx", voidPayload);
+
+        console.log(
+          `[GALT Auto-Void] GALT response for ApplicationID ${oldAppId || oldContractNo}:`,
+          voidResult.data
+        );
+
+        if (row.id !== currentContractId) {
+          await db.query(
+            `UPDATE contracts SET galt_sync_status = 'voided' WHERE id = $1 AND status != 'paid'`,
+            [row.id]
+          );
+        }
+      } catch (voidErr) {
+        console.warn(
+          `[GALT Auto-Void] Failed to void GALT ApplicationID ${oldAppId}:`,
+          voidErr.message
+        );
+      }
+    }
+  } catch (err) {
+    console.error("[GALT Auto-Void] Error querying previous GALT applications:", err);
+  }
+};
+
+/**
+ * POST /api/galt/submit  — orchestrated two-step Rate → App flow
  *
  * The frontend sends all customer/lift data. This endpoint:
  *   1. Calls /rateymm.aspx to get ProductID, Coverage, TermMonths, Deductible, DealerCost
@@ -318,6 +378,8 @@ export const submitFullApp = async (req, res) => {
       const pdfBase64 = appData.PDF || appResult.data.PDF;
       const galtContractNo =
         appData.ContractNo || appResult.data.ContractNo || null;
+      const galtApplicationId =
+        appData.ApplicationID || appResult.data.ApplicationID || null;
       const signatures = appData.Signatures || appResult.data.Signatures || [];
 
       let savedPdfUrl = null;
@@ -368,20 +430,34 @@ export const submitFullApp = async (req, res) => {
              galt_signatures = $2, 
              galt_sync_status = 'success', 
              galt_contract_no = $3,
-             retail_price = $4,
-             tax_amount = $5,
-             amount = $6
-         WHERE id = $7`,
+             galt_application_id = $4,
+             retail_price = $5,
+             tax_amount = $6,
+             amount = $7
+         WHERE id = $8`,
         [
           savedPdfUrl,
           JSON.stringify(signatures),
           galtContractNo,
+          galtApplicationId ? String(galtApplicationId) : null,
           finalGaltRetail,
           newTaxAmount,
           newTotalAmount,
           contractId,
         ],
       );
+
+      // Auto-void any previous unpaid GALT applications for this lift to eliminate duplicates in GALT
+      const cleanVin = VIN
+        ? String(VIN).replace(/[^a-zA-Z0-9]/g, "").toUpperCase()
+        : null;
+      if (cleanVin && galtApplicationId) {
+        autoVoidPreviousGaltApps(cleanVin, contractId, galtApplicationId).catch(
+          (voidErr) => {
+            console.error("[GALT Auto-Void] Background void error:", voidErr);
+          },
+        );
+      }
     } else if (contractId) {
       await db
         .query(

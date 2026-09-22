@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { getFloridaTaxInfo } from "../utils/floridaTaxRates";
 import { useFlow } from "../context/FlowContext";
 import { useAuth, apiClient } from "../context/AuthContext";
@@ -71,6 +71,14 @@ const US_STATES = [
   "DC",
 ];
 
+const getTodayDateString = () => {
+  const today = new Date();
+  const yyyy = today.getFullYear();
+  const mm = String(today.getMonth() + 1).padStart(2, "0");
+  const dd = String(today.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+};
+
 const CustomerForm = ({ onNext, onBack }) => {
   const {
     servicePlan,
@@ -79,6 +87,7 @@ const CustomerForm = ({ onNext, onBack }) => {
     setCustomer,
     technicianName,
     setTechnicianName,
+    contractId,
     setContractId,
     setGaltPdf,
     setGaltContractNo,
@@ -91,6 +100,7 @@ const CustomerForm = ({ onNext, onBack }) => {
 
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
+  const isSubmittingRef = useRef(false);
   const [errorMsg, setErrorMsg] = useState("");
 
   const isUsed = servicePlan?.vehicleStatus === "USED";
@@ -118,8 +128,8 @@ const CustomerForm = ({ onNext, onBack }) => {
     year: customer?.year || "",
     make: customer?.make || "",
     model: customer?.model || "",
-    date_of_sale: customer?.date_of_sale || "",
-    in_service_date: customer?.date_of_sale || customer?.in_service_date || "",
+    date_of_sale: customer?.date_of_sale || getTodayDateString(),
+    in_service_date: customer?.date_of_sale || customer?.in_service_date || getTodayDateString(),
     mnf_warranty_length: customer?.mnf_warranty_length || "12",
   });
 
@@ -156,7 +166,8 @@ const CustomerForm = ({ onNext, onBack }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (submitBlocked) return;
+    if (submitBlocked || loading || isSubmittingRef.current) return;
+    isSubmittingRef.current = true;
     setLoading(true);
     setErrorMsg("");
 
@@ -186,6 +197,7 @@ const CustomerForm = ({ onNext, onBack }) => {
 
       // 1. Save customer + contract locally
       const response = await apiClient.post("/customer-init", {
+        contract_id: contractId || null,
         technician_id: user?.id,
         technician_name: techName,
         customer: {
@@ -351,6 +363,7 @@ const CustomerForm = ({ onNext, onBack }) => {
       );
     } finally {
       setLoading(false);
+      isSubmittingRef.current = false;
     }
   };
 

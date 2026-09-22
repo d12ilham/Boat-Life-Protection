@@ -45,6 +45,7 @@ async function run() {
       ADD COLUMN IF NOT EXISTS coverage VARCHAR(50),
       ADD COLUMN IF NOT EXISTS contract_type VARCHAR(50),
       ADD COLUMN IF NOT EXISTS galt_contract_no VARCHAR(100),
+      ADD COLUMN IF NOT EXISTS galt_application_id VARCHAR(100),
       ADD COLUMN IF NOT EXISTS tax_amount NUMERIC(10, 2) DEFAULT 0.00,
       ADD COLUMN IF NOT EXISTS tax_rate NUMERIC(5, 4) DEFAULT 0.0000,
       ADD COLUMN IF NOT EXISTS tax_county VARCHAR(100);

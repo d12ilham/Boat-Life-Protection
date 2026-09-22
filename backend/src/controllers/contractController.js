@@ -9,7 +9,7 @@ import { fileURLToPath } from 'url';
  * Initialize Customer and Contract records in the database.
  */
 export const initCustomerAndContract = async (req, res) => {
-  const { technician_id, customer, contract } = req.body;
+  const { technician_id, customer, contract, contract_id } = req.body;
 
   try {
     // Check if Stripe Test Mode ($1.00 Charge) is active
@@ -59,9 +59,94 @@ export const initCustomerAndContract = async (req, res) => {
       );
     }
 
-    // 2. Initialize Contract
+    // 2. Initialize or Update Contract
     // vehicle_status must be 'NEW' or 'USED' (Gary confirmed — not 'N/A')
     const vehicleStatus = ['NEW', 'USED'].includes(contract.vehicle_status) ? contract.vehicle_status : 'NEW';
+    const cleanSerial = contract.serial_number ? String(contract.serial_number).replace(/[^a-zA-Z0-9]/g, "").toUpperCase() : null;
+
+    let targetContractId = contract_id || null;
+
+    // Deduplication check: If no contract_id is passed, check if a 'pending' contract for this customer and serial
+    // was created recently (within the last 10 minutes). This blocks rapid multi-clicks from inserting duplicate records.
+    if (!targetContractId && customerId && cleanSerial) {
+      const recentPending = await db.query(
+        `SELECT id FROM contracts 
+         WHERE customer_id = $1 
+           AND serial_number = $2 
+           AND status = 'pending' 
+           AND created_at >= NOW() - INTERVAL '10 minutes'
+         ORDER BY id DESC LIMIT 1`,
+        [customerId, cleanSerial]
+      );
+      if (recentPending.rows.length > 0) {
+        targetContractId = recentPending.rows[0].id;
+      }
+    }
+
+    if (targetContractId) {
+      const existing = await db.query(
+        'SELECT id, status FROM contracts WHERE id = $1',
+        [targetContractId]
+      );
+
+      if (existing.rows.length > 0 && existing.rows[0].status === 'pending') {
+        await db.query(
+          `UPDATE contracts SET
+            technician_id = $1,
+            technician_name = $2,
+            service_plan = $3,
+            amount = $4,
+            serial_number = $5,
+            year = $6,
+            make = $7,
+            model = $8,
+            lift_type = $9,
+            lift_category = $10,
+            date_of_sale = $11,
+            in_service_date = $12,
+            mnf_warranty_length = $13,
+            vehicle_sale_price = $14,
+            retail_price = $15,
+            vehicle_status = $16,
+            coverage = $17,
+            contract_type = $18,
+            tax_amount = $19,
+            tax_rate = $20,
+            tax_county = $21
+          WHERE id = $22`,
+          [
+            technician_id || null,
+            req.body.technician_name,
+            contract.service_plan,
+            finalAmount,
+            cleanSerial,
+            contract.year ? parseInt(contract.year) : null,
+            contract.make,
+            contract.model,
+            contract.lift_type,
+            contract.lift_category,
+            contract.date_of_sale || null,
+            contract.in_service_date || null,
+            contract.mnf_warranty_length ? parseInt(contract.mnf_warranty_length) : 0,
+            contract.vehicle_sale_price ? parseFloat(contract.vehicle_sale_price) : 0.0,
+            contract.retail_price ? parseFloat(contract.retail_price) : 0.0,
+            vehicleStatus,
+            contract.coverage || null,
+            contract.contract_type || null,
+            finalTaxAmount,
+            contract.tax_rate ? parseFloat(contract.tax_rate) : 0.0000,
+            contract.tax_county || null,
+            targetContractId,
+          ]
+        );
+
+        return res.status(200).json({
+          message: 'Contract updated',
+          customer_id: customerId,
+          contract_id: targetContractId,
+        });
+      }
+    }
 
     const insertContract = await db.query(
       `INSERT INTO contracts (
@@ -90,7 +175,7 @@ export const initCustomerAndContract = async (req, res) => {
         req.body.technician_name,
         contract.service_plan,
         finalAmount,
-        contract.serial_number ? String(contract.serial_number).replace(/[^a-zA-Z0-9]/g, "").toUpperCase() : null,
+        cleanSerial,
         contract.year ? parseInt(contract.year) : null,
         contract.make,
         contract.model,
