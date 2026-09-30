@@ -96,6 +96,9 @@ const CustomerForm = ({ onNext, onBack }) => {
     inspectionPassed,
     setInspectionPassed,
     setGaltSignatures,
+    setGaltSubmittedAt,
+    expiryAlert,
+    setExpiryAlert,
   } = useFlow();
 
   const { user } = useAuth();
@@ -342,6 +345,9 @@ const CustomerForm = ({ onNext, onBack }) => {
               totalAmount: syncedTotal,
             }));
           }
+
+          setGaltSubmittedAt(galtData?.galt_submitted_at || Date.now());
+          setExpiryAlert(null);
         } catch (galtErr) {
           console.error(
             "[GALT] Error submitting to GALT /galt/submit:",
@@ -372,6 +378,34 @@ const CustomerForm = ({ onNext, onBack }) => {
       <form onSubmit={handleSubmit} className="flex flex-col">
         {/* Scrollable Content Body */}
         <div className="p-3 md:p-5 lg:p-10 space-y-8">
+          {expiryAlert && (
+            <div className="p-4 sm:p-5 bg-rose-50 text-rose-900 rounded-2xl border-2 border-rose-300 shadow-sm flex items-start gap-3.5 animate-in fade-in slide-in-from-top-2 duration-300">
+              <div className="p-2 bg-rose-100 text-rose-700 rounded-xl shrink-0">
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <div className="flex-1">
+                <h4 className="font-bold text-sm text-rose-950">
+                  Application Expired & Document Voided
+                </h4>
+                <p className="text-xs sm:text-sm text-rose-800 mt-1 leading-relaxed">
+                  {expiryAlert}
+                </p>
+                <p className="text-xs text-rose-700 font-semibold mt-2">
+                  Your customer and lift details are preserved below. Click{" "}
+                  <span className="font-bold underline">"Continue to contract review"</span> to generate a fresh document.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setExpiryAlert(null)}
+                className="text-rose-400 hover:text-rose-700 p-1 text-sm font-bold cursor-pointer"
+                title="Dismiss"
+              >
+                ✕
+              </button>
+            </div>
+          )}
+
           {errorMsg && (
             <div className="p-4 bg-red-50 text-red-700 rounded-xl border border-red-200 text-sm font-semibold flex items-center gap-3">
               <span className="text-lg">⚠</span> {errorMsg}

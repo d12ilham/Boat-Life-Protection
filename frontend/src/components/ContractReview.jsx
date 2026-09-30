@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useFlow } from "../context/FlowContext";
 import { useAuth, apiClient } from "../context/AuthContext";
 import {
@@ -7,8 +7,9 @@ import {
   ShieldCheck,
   AlertTriangle,
 } from "lucide-react";
+import ContractExpiryTimer from "./ContractExpiryTimer";
 
-const ContractReview = ({ onNext, onBack }) => {
+const ContractReview = ({ onNext, onBack, goToStep }) => {
   const {
     customer,
     servicePlan,
@@ -20,6 +21,8 @@ const ContractReview = ({ onNext, onBack }) => {
     galtApplicationId,
     galtPdf,
     galtSignatures,
+    clearGaltApplication,
+    setExpiryAlert,
   } = useFlow();
 
   const { user } = useAuth();
@@ -174,10 +177,24 @@ const ContractReview = ({ onNext, onBack }) => {
     }
   };
 
+  const handleExpire = () => {
+    clearGaltApplication();
+    setExpiryAlert(
+      "Your 3-minute payment window has expired. The application document was voided and removed from the server. Please review your details and re-request the document.",
+    );
+    if (goToStep) {
+      goToStep(3);
+    } else if (onBack) {
+      onBack();
+    }
+  };
+
   return (
     <div className="animate-in fade-in duration-300 flex flex-col">
       {/* Scrollable Content Body */}
       <div className="p-3 md:p-5 lg:p-10 space-y-8">
+        {/* 3-Minute Expiry Countdown Timer */}
+        <ContractExpiryTimer onExpire={handleExpire} />
         {errorMsg && (
           <div className="p-4 bg-red-50 text-red-700 rounded-xl border border-red-200 text-sm font-semibold flex items-center gap-3">
             <span className="text-lg">âš </span> {errorMsg}

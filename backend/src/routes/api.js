@@ -12,7 +12,7 @@ import {
 } from '../controllers/authController.js';
 import { initCustomerAndContract, signContract, getContract } from '../controllers/contractController.js';
 import { createPaymentIntent, stripeWebhook, getStripeConfig } from '../controllers/paymentController.js';
-import { getRate, submitApp, submitFullApp, getAppPdf, voidApp, checkVin, getStandardRate } from '../controllers/galtController.js';
+import { getRate, submitApp, submitFullApp, getAppPdf, voidApp, checkVin, getStandardRate, getGaltExpiryStatus } from '../controllers/galtController.js';
 import { connectQBO, callbackQBO, getQboStatus } from '../controllers/qboController.js';
 import { 
   verifyPassword, 
@@ -73,6 +73,7 @@ router.post('/galt/app', requireAuth, submitApp);        // direct passthrough (
 router.post('/galt/apppdf', requireAuth, getAppPdf);
 router.post('/galt/void', requireAuth, voidApp);         // NEW: void endpoint
 router.post('/galt/vincheck', requireAuth, checkVin);
+router.get('/galt/expiry-status/:contractId', requireAuth, getGaltExpiryStatus);
 
 // ── Stripe Webhook & Config (must be accessible for payments) ─────────────────
 router.get('/stripe/config', getStripeConfig);

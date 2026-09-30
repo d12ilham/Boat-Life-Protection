@@ -229,9 +229,9 @@ const RadioGroup = ({ label, options, value, onChange, required }) => {
   const getSubtext = (opt) => {
     if (opt === "Gold") return "Standard parts & motor coverage";
     if (opt === "Platinum") return "Full comprehensive wrap cover (+$500)";
-    if (opt === "1 Motor") return "1 boat lift motor supported";
-    if (opt === "2 Motor") return "2 boat lift motors supported";
-    if (opt === "4 Motor") return "4 boat lift motors supported";
+    if (opt === "1 Motor") return "1 boat lift motor supported ($3,000)";
+    if (opt === "2 Motor") return "2 boat lift motors supported ($3,000)";
+    if (opt === "4 Motor") return "4 boat lift motors supported ($3,500)";
     if (opt === "Post") return "Post mount lift setup";
     if (opt === "Lean To") return "Side mount lift setup";
     return "";
@@ -372,11 +372,12 @@ const ServiceSelection = ({ onNext }) => {
       });
       onNext();
     } else if (selectedPlanId === "maintenance" && selectedCat && !isCustomQuote) {
+      const maintenancePrice = coverage === "4 Motor" ? 3500 : 3000;
       setServicePlan({
         id: "maintenance",
         productId: 102,
         name: "Boat Lift Preferred Maintenance Protection (PMP)",
-        price: 3000,
+        price: maintenancePrice,
         months: 36,
         vehicleStatus,
         coverage, // "1 Motor" | "2 Motor" | "4 Motor"
@@ -385,7 +386,7 @@ const ServiceSelection = ({ onNext }) => {
         liftCategory: selectedCat.category,
         weightRange: selectedCat.weightRange,
         vehicleSalePrice: selectedCat.salePrice,
-        retailPrice: 3000,
+        retailPrice: maintenancePrice,
       });
       onNext();
     } else if (
@@ -422,7 +423,7 @@ const ServiceSelection = ({ onNext }) => {
     }
   } else if (selectedCat) {
     if (selectedPlanId === "maintenance") {
-      calculatedPrice = 3000;
+      calculatedPrice = coverage === "4 Motor" ? 3500 : 3000;
     } else if (selectedCat.retailPrice === "Custom Quote") {
       calculatedPrice = "Custom Quote";
     } else {
@@ -505,7 +506,9 @@ const ServiceSelection = ({ onNext }) => {
                 <span
                   className={`text-2xl font-extrabold ${selectedPlanId === "maintenance" ? "text-white" : "text-slate-900"}`}
                 >
-                  $3,000
+                  {selectedPlanId === "maintenance" && coverage === "4 Motor"
+                    ? "$3,500"
+                    : "$3,000"}
                 </span>
                 <span
                   className={`text-sm mt-0.5 ${

@@ -47,14 +47,29 @@ export const createPaymentIntent = async (req, res) => {
 
   try {
     const contractResult = await db.query(
-      "SELECT amount, customer_id FROM contracts WHERE id = $1",
+      "SELECT amount, customer_id, status, galt_sync_status, galt_submitted_at FROM contracts WHERE id = $1",
       [contract_id],
     );
     if (contractResult.rows.length === 0) {
       return res.status(404).json({ message: "Contract not found" });
     }
 
-    const { amount, customer_id } = contractResult.rows[0];
+    const { amount, customer_id, status, galt_sync_status, galt_submitted_at } =
+      contractResult.rows[0];
+
+    // Check if contract has expired (3 minutes) or was already voided
+    if (
+      status !== "paid" &&
+      (galt_sync_status === "voided" ||
+        (galt_submitted_at &&
+          Date.now() - new Date(galt_submitted_at).getTime() > 180000))
+    ) {
+      return res.status(400).json({
+        message:
+          "Payment window has expired (3 minutes). The contract document was voided. Please return to customer details to re-request the document.",
+        is_expired: true,
+      });
+    }
 
     const customerResult = await db.query(
       "SELECT name, email FROM customers WHERE id = $1",

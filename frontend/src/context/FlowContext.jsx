@@ -18,6 +18,19 @@ export const FlowProvider = ({ children }) => {
   const [galtSignatures, setGaltSignatures] = useState([]);
   // Used lift inspection gate -- must be confirmed before GALT submission on USED lifts
   const [inspectionPassed, setInspectionPassed] = useState(false);
+  // 3-minute GALT payment window tracking
+  const [galtSubmittedAt, setGaltSubmittedAt] = useState(null);
+  const [expiryAlert, setExpiryAlert] = useState(null);
+
+  const clearGaltApplication = () => {
+    setGaltPdf(null);
+    setGaltContractNo('');
+    setGaltApplicationId(null);
+    setGaltDealerCost(null);
+    setGaltSignatures([]);
+    setSignature(null);
+    setGaltSubmittedAt(null);
+  };
 
   const value = {
     technician, setTechnician,
@@ -32,6 +45,9 @@ export const FlowProvider = ({ children }) => {
     galtDealerCost, setGaltDealerCost,
     inspectionPassed, setInspectionPassed,
     galtSignatures, setGaltSignatures,
+    galtSubmittedAt, setGaltSubmittedAt,
+    expiryAlert, setExpiryAlert,
+    clearGaltApplication,
   };
 
   return (

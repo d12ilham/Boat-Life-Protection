@@ -6,6 +6,7 @@ import swaggerUi from "swagger-ui-express";
 import swaggerJsdoc from "swagger-jsdoc";
 import apiRoutes from "./routes/api.js";
 import db from "./config/db.js";
+import { startGaltExpiryCron } from "./services/galtExpiryService.js";
 
 const app = express();
 
@@ -61,6 +62,8 @@ app.listen(PORT, async () => {
   try {
     const res = await db.query("SELECT NOW()");
     console.log("✅ Database connected successfully:", res.rows[0].now);
+    // Start background sweeper to void unpaid GALT applications older than 3 mins and clean up server PDFs
+    startGaltExpiryCron();
   } catch (err) {
     console.error("❌ Database connection failed:", err.message);
   }

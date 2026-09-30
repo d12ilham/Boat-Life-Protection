@@ -2,6 +2,7 @@ import fs from "fs";
 import path from "path";
 import db from "../config/db.js";
 import { getSetting } from "../config/configResolver.js";
+import { voidAndCleanupContract } from "../services/galtExpiryService.js";
 
 /**
  * Controller for Galt F&I Online Interface API endpoints
@@ -433,7 +434,8 @@ export const submitFullApp = async (req, res) => {
              galt_application_id = $4,
              retail_price = $5,
              tax_amount = $6,
-             amount = $7
+             amount = $7,
+             galt_submitted_at = CURRENT_TIMESTAMP
          WHERE id = $8`,
         [
           savedPdfUrl,
@@ -494,6 +496,8 @@ export const submitFullApp = async (req, res) => {
       ...appResult.data,
       _rateUsed: chosenRate,
       pricing: syncedPricing,
+      galt_submitted_at: new Date().toISOString(),
+      expires_in_seconds: 180,
     };
 
     return res.status(appResult.ok ? 200 : appResult.status).json(responseBody);
@@ -563,6 +567,94 @@ export const checkVin = async (req, res) => {
 };
 
 /**
+ * GET /api/galt/expiry-status/:contractId
+ * Returns the expiration status and seconds remaining of the 3-minute payment window.
+ */
+export const getGaltExpiryStatus = async (req, res) => {
+  const { contractId } = req.params;
+  try {
+    const result = await db.query(
+      `SELECT id, status, galt_sync_status, galt_submitted_at, galt_application_id, galt_contract_no
+       FROM contracts WHERE id = $1`,
+      [contractId],
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: "Contract not found" });
+    }
+
+    const contract = result.rows[0];
+
+    // If already paid, it never expires
+    if (contract.status === "paid") {
+      return res.json({
+        contractId: contract.id,
+        status: "paid",
+        galt_sync_status: contract.galt_sync_status,
+        is_expired: false,
+        seconds_remaining: 9999,
+      });
+    }
+
+    // If voided or no active GALT app
+    if (
+      contract.galt_sync_status === "voided" ||
+      (!contract.galt_application_id && !contract.galt_contract_no)
+    ) {
+      return res.json({
+        contractId: contract.id,
+        status: contract.status,
+        galt_sync_status: "voided",
+        is_expired: true,
+        seconds_remaining: 0,
+      });
+    }
+
+    if (!contract.galt_submitted_at) {
+      return res.json({
+        contractId: contract.id,
+        status: contract.status,
+        galt_sync_status: contract.galt_sync_status,
+        is_expired: false,
+        seconds_remaining: 180,
+      });
+    }
+
+    const submittedMs = new Date(contract.galt_submitted_at).getTime();
+    const nowMs = Date.now();
+    const elapsedSeconds = Math.floor((nowMs - submittedMs) / 1000);
+    const secondsRemaining = Math.max(0, 180 - elapsedSeconds);
+
+    if (secondsRemaining <= 0) {
+      // Trigger void & cleanup immediately
+      await voidAndCleanupContract(
+        contract.id,
+        "Expiry status query (0 seconds remaining)",
+      );
+      return res.json({
+        contractId: contract.id,
+        status: contract.status,
+        galt_sync_status: "voided",
+        is_expired: true,
+        seconds_remaining: 0,
+      });
+    }
+
+    return res.json({
+      contractId: contract.id,
+      status: contract.status,
+      galt_sync_status: contract.galt_sync_status,
+      galt_submitted_at: contract.galt_submitted_at,
+      is_expired: false,
+      seconds_remaining: secondsRemaining,
+    });
+  } catch (error) {
+    console.error("Error in getGaltExpiryStatus:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+/**
  * POST /api/galt/standard-rate
  */
 export const getStandardRate = async (req, res) => {
@@ -577,3 +669,4 @@ export const getStandardRate = async (req, res) => {
     });
   }
 };
+

@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useFlow } from "../context/FlowContext";
 import Login from "../components/Login";
@@ -62,9 +62,15 @@ const Wizard = () => {
       case 3:
         return <CustomerForm onNext={nextStep} onBack={prevStep} />;
       case 4:
-        return <ContractReview onNext={nextStep} onBack={prevStep} />;
+        return (
+          <ContractReview
+            onNext={nextStep}
+            onBack={prevStep}
+            goToStep={setStep}
+          />
+        );
       case 5:
-        return <Payment onBack={prevStep} />;
+        return <Payment onBack={prevStep} goToStep={setStep} />;
       default:
         return <Login onSuccess={() => setStep(STEP_START)} />;
     }

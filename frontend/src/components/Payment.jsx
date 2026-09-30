@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useFlow } from "../context/FlowContext";
 import { apiClient } from "../context/AuthContext";
 import { loadStripe } from "@stripe/stripe-js";
+import ContractExpiryTimer from "./ContractExpiryTimer";
 import {
   Elements,
   PaymentElement,
@@ -69,8 +70,9 @@ const CheckoutForm = ({ contract_id }) => {
   );
 };
 
-const Payment = ({ onNext, onBack }) => {
-  const { contractId, servicePlan } = useFlow();
+const Payment = ({ onNext, onBack, goToStep }) => {
+  const { contractId, servicePlan, clearGaltApplication, setExpiryAlert } =
+    useFlow();
   const [clientSecret, setClientSecret] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
   const [stripePromise, setStripePromise] = useState(() => {
@@ -100,6 +102,18 @@ const Payment = ({ onNext, onBack }) => {
     fetchStripeKey();
   }, []);
 
+  const handleExpire = () => {
+    clearGaltApplication();
+    setExpiryAlert(
+      "Your 3-minute payment window has expired. The application document was voided and removed from the server. Please review your details and re-request the document.",
+    );
+    if (goToStep) {
+      goToStep(3);
+    } else if (onBack) {
+      onBack();
+    }
+  };
+
   useEffect(() => {
     if (fetched.current) return;
     const fetchIntent = async () => {
@@ -112,8 +126,13 @@ const Payment = ({ onNext, onBack }) => {
         setClientSecret(response.data.clientSecret);
       } catch (err) {
         console.error("Failed to init payment", err);
+        if (err.response?.data?.is_expired) {
+          handleExpire();
+          return;
+        }
         setErrorMsg(
-          "Failed to initialize Stripe payment. Please try again or go back.",
+          err.response?.data?.message ||
+            "Failed to initialize Stripe payment. Please try again or go back.",
         );
         fetched.current = false;
       }
@@ -127,6 +146,9 @@ const Payment = ({ onNext, onBack }) => {
     <div className="animate-in fade-in duration-300 flex flex-col">
       {/* Scrollable Content Body */}
       <div className="p-6 sm:p-10 max-w-2xl mx-auto space-y-6 w-full">
+        {/* 3-Minute Expiry Countdown Timer */}
+        <ContractExpiryTimer onExpire={handleExpire} />
+
         {/* Test Mode $1.00 Banner */}
         {isTestMode && (
           <div className="bg-amber-50 border border-amber-300 rounded-2xl p-4 sm:p-5 flex items-start sm:items-center gap-3 sm:gap-4 shadow-sm animate-in fade-in slide-in-from-top-2 duration-300">

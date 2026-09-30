@@ -48,7 +48,8 @@ async function run() {
       ADD COLUMN IF NOT EXISTS galt_application_id VARCHAR(100),
       ADD COLUMN IF NOT EXISTS tax_amount NUMERIC(10, 2) DEFAULT 0.00,
       ADD COLUMN IF NOT EXISTS tax_rate NUMERIC(5, 4) DEFAULT 0.0000,
-      ADD COLUMN IF NOT EXISTS tax_county VARCHAR(100);
+      ADD COLUMN IF NOT EXISTS tax_county VARCHAR(100),
+      ADD COLUMN IF NOT EXISTS galt_submitted_at TIMESTAMP;
     `);
     console.log("Altered contracts table.");
 
