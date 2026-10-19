@@ -189,6 +189,9 @@ const FLORIDA_ZIP_TAX_MAP = {
   33359: { county: "Broward County", rate: 0.07 },
   33388: { county: "Broward County", rate: 0.07 },
   33394: { county: "Broward County", rate: 0.07 },
+  33441: { county: "Broward County", rate: 0.07 },
+  33442: { county: "Broward County", rate: 0.07 },
+  33443: { county: "Broward County", rate: 0.07 },
 
   // Miami-Dade County (7.0%)
   33002: { county: "Miami-Dade County", rate: 0.07 },
@@ -318,7 +321,7 @@ const FLORIDA_ZIP_TAX_MAP = {
  *   Returns the tax entry if the ZIP is in a taxable FL county, otherwise null.
  */
 export function getFloridaTaxInfo(state, zipCode) {
-  if (state !== "FL") return null;
-  const zip = String(zipCode).trim().slice(0, 5);
+  if (!state || String(state).trim().toUpperCase() !== "FL") return null;
+  const zip = String(zipCode || "").trim().slice(0, 5);
   return FLORIDA_ZIP_TAX_MAP[zip] || null;
 }
